@@ -47,19 +47,7 @@ const MIcon = () => (
       xmlns="http://www.w3.org/2000/svg"
       className="h-full w-full"
     >
-      <path
-        d="M8 15V9H6V15H8Z"
-        fill="white"
-      />
-      <path
-        d="M8 11C8 10.4477 8.44772 10 9 10C9.55228 10 10 10.4477 10 11V15H8V11Z"
-        fill="white"
-      />
-      <path
-        d="M10 11C10 10.4477 10.4477 10 11 10C11.5523 10 12 10.4477 12 11V15H10V11Z"
-        fill="white"
-      />
-      <circle cx="13.5" cy="15" r="1" fill="white" />
+      <circle cx="12" cy="12" r="6" fill="white" />
     </svg>
   );
 
