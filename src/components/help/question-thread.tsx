@@ -8,12 +8,20 @@ import React, { useEffect, useState } from 'react';
 import { useInformation, Question as QuestionType, Author as AuthorType, Answer as AnswerType } from "@/context/information-context";
 
 const ThreadItem = ({ children, author, level = 0, isLastInLevel = true, hasChildren = false }: { children: React.ReactNode, author: AuthorType, level?: number, isLastInLevel?: boolean, hasChildren?: boolean }) => {
+    const hasMoreAfter = !isLastInLevel || hasChildren;
+
     return (
         <div className="relative flex items-start gap-4">
             {level > 0 && (
                 <>
-                    <div className="absolute left-[18px] top-[40px] h-full w-px bg-border"></div>
-                    <div className="absolute left-[18px] top-[40px] h-10 w-6 rounded-bl-xl border-b-2 border-l-2 border-border"></div>
+                    {/* Vertical line from previous item down to this item's horizontal line */}
+                    <div className="absolute left-[18px] top-0 h-5 w-px bg-border"></div>
+                    
+                    {/* Horizontal connector from vertical line to the space before the bubble */}
+                    <div className="absolute left-[18px] top-5 h-px w-6 bg-border"></div>
+
+                    {/* Vertical line for items below */}
+                    {hasMoreAfter && <div className="absolute left-[18px] top-5 h-full w-px bg-border"></div>}
                 </>
             )}
 
@@ -75,7 +83,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
             
             return (
                 <div className="space-y-6 pl-8" key={answer.id}>
-                    <ThreadItem author={answer.author} level={level + 1} isLastInLevel={isLast} hasChildren={hasFollowUps}>
+                    <ThreadItem author={answer.author} level={level + 1} isLastInLevel={isLast && !hasFollowUps} hasChildren={hasFollowUps}>
                         <p className="line-clamp-3">{answer.text}</p>
                         <Button variant="link" className="p-0 h-auto text-blue-500">Read More</Button>
                         <div className="mt-4 flex">
@@ -101,7 +109,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
 
             return (
                 <div className="space-y-6 pl-8" key={followUp.id}>
-                    <ThreadItem author={followUp.author} level={level + 1} isLastInLevel={isLast} hasChildren={hasAnswers}>
+                    <ThreadItem author={followUp.author} level={level + 1} isLastInLevel={isLast && !hasAnswers} hasChildren={hasAnswers}>
                         <p>{followUp.question}</p>
                         <div className="flex justify-end mt-4">
                             <Button onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
