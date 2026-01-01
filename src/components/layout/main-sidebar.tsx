@@ -74,7 +74,7 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
           <MIcon />
         )}
       </SidebarHeader>
-      <SidebarContent className="p-2">
+      <SidebarContent className="p-2 pt-20">
         <SidebarMenu>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
@@ -115,5 +115,3 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
     </>
   );
 }
-
-    
