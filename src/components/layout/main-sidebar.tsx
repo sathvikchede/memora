@@ -72,7 +72,7 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
                 asChild
                 isActive={activeTab === item.href}
                 tooltip={{ children: item.tooltip, side: "right" }}
-                className="font-semibold justify-center"
+                className="font-semibold justify-start"
               >
                 <Link href={item.href}>
                   <item.icon className="stroke-[2.5px]" />
@@ -91,7 +91,7 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
                 asChild
                 isActive={activeTab === item.href}
                 tooltip={{ children: item.tooltip, side: "right" }}
-                className="font-semibold justify-center"
+                className="font-semibold justify-start"
               >
                 <Link href={item.href}>
                   <item.icon className="stroke-[2.5px]" />
