@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef } from 'react';
@@ -20,7 +21,7 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
-    const { addQuestion, addAnswer, addFollowUp } = useInformation();
+    const { currentUser, addQuestion, addAnswer, addFollowUp } = useInformation();
 
     const applyStyle = (style: 'bold' | 'italic' | 'underline' | 'h1' | 'h2' | 'h3') => {
         const textarea = editorRef.current;
@@ -96,11 +97,9 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
     const handlePost = () => {
         if (!content.trim()) return;
 
-        const author = { 
-            name: isAnonymous ? "Anonymous" : "Current User", 
-            department: isAnonymous ? "Unknown" : "Your Department", 
-            avatar: isAnonymous ? "/avatars/anonymous.png" : "/avatars/user.png" 
-        };
+        const author = isAnonymous 
+            ? { id: 'anonymous', name: "Anonymous", department: "Unknown", avatar: "/avatars/anonymous.png" }
+            : currentUser;
 
         switch (mode) {
             case "post-question":
@@ -161,3 +160,5 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
         </div>
     );
 }
+
+    

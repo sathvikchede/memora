@@ -10,7 +10,7 @@ interface YourQueriesProps {
 }
 
 export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
-    const { questions } = useInformation();
+    const { questions, currentUser } = useInformation();
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -21,9 +21,7 @@ export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
         return null; // or a loading skeleton
     }
     
-    // This is a mock user check. In a real app, you'd get the current user's ID.
-    const currentUser = "Current User"; 
-    const yourQueries = questions.filter(q => q.author.name === currentUser);
+    const yourQueries = questions.filter(q => q.author.id === currentUser.id);
 
     return (
         <div className="space-y-2">
@@ -43,3 +41,5 @@ export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
         </div>
     );
 }
+
+    

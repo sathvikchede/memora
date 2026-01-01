@@ -10,7 +10,7 @@ interface YourResponsesProps {
 }
 
 export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
-    const { questions } = useInformation();
+    const { questions, currentUser } = useInformation();
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -21,14 +21,12 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
         return null;
     }
     
-    const currentUser = "Current User"; 
-    
     const yourResponses: {id: string, question: string, parentId?: string}[] = [];
 
     const findResponses = (qs: Question[]) => {
         qs.forEach(q => {
             q.answers.forEach(a => {
-                if (a.author.name === currentUser) {
+                if (a.author.id === currentUser.id) {
                     yourResponses.push({ id: q.id, question: q.question });
                 }
                 if (a.followUps) {
@@ -39,11 +37,13 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
     }
 
     findResponses(questions);
+    
+    const uniqueResponses = Array.from(new Map(yourResponses.map(item => [item.id, item])).values());
 
 
     return (
         <div className="space-y-2">
-            {yourResponses.map(query => (
+            {uniqueResponses.map(query => (
                 <Button 
                     key={query.id} 
                     variant="outline" 
@@ -59,3 +59,5 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
         </div>
     );
 }
+
+    

@@ -1,8 +1,10 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 export interface Author {
+    id: string;
     name: string;
     department: string;
     avatar: string;
@@ -27,7 +29,6 @@ export interface Question {
     parentId?: string;
 }
 
-
 export interface Entry {
     id: string;
     text: string;
@@ -39,6 +40,12 @@ export interface Entry {
     questionId?: string; // for type 'answer' and 'follow-up'
 }
 
+const USERS: Author[] = [
+    { id: 'user-1', name: 'Alex', department: 'Engineering', avatar: '/avatars/alex.png' },
+    { id: 'user-2', name: 'Ben', department: 'Product', avatar: '/avatars/ben.png' },
+    { id: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png' },
+];
+
 interface InformationContextType {
     entries: Entry[];
     addEntry: (entry: Entry) => void;
@@ -46,21 +53,24 @@ interface InformationContextType {
     addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => void;
     addAnswer: (questionId: string, answer: Omit<Answer, 'followUps' | 'id'>, originalQuestion: string) => void;
     addFollowUp: (answerId: string, followUp: Omit<Question, 'answers' | 'relevance' | 'id'>, originalQuestion: string) => void;
+    users: Author[];
+    currentUser: Author;
+    setCurrentUser: (user: Author) => void;
 }
 
 const InformationContext = createContext<InformationContextType | undefined>(undefined);
 
 const defaultQuestions: Question[] = [
-    { 
-        id: "q1", 
-        question: "How to set up Firebase Authentication in a Next.js app?", 
+    {
+        id: "q1",
+        question: "How to set up Firebase Authentication in a Next.js app?",
         relevance: "high",
-        author: { name: "John Doe", department: "Computer Science", avatar: "/avatars/john.png" },
+        author: { id: "user-2", name: "John Doe", department: "Computer Science", avatar: "/avatars/john.png" },
         answers: [
             {
                 id: "a1",
                 text: "You can use the official 'firebase' package. First, you need to create a Firebase project and get your configuration keys. Then, initialize Firebase in a client-side component. After that, you can use the auth functions like `signInWithPopup` or `onAuthStateChanged` to manage user sessions. It's quite straightforward once you get the config set up properly.",
-                author: { name: "Jane Smith", department: "Software Engineering", avatar: "/avatars/jane.png" },
+                author: { id: "user-3", name: "Jane Smith", department: "Software Engineering", avatar: "/avatars/jane.png" },
                 upvotes: 12,
                 downvotes: 1,
                 followUps: [
@@ -69,12 +79,12 @@ const defaultQuestions: Question[] = [
                         question: "Thanks! How do you handle protecting routes for authenticated users?",
                         isFollowUp: true,
                         parentId: "q1",
-                        author: { name: "John Doe", department: "Computer Science", avatar: "/avatars/john.png" },
+                        author: { id: "user-2", name: "John Doe", department: "Computer Science", avatar: "/avatars/john.png" },
                         relevance: 'medium',
                         answers: [{
                             id: "fa1",
                             text: "You can use a higher-order component (HOC) or a React Hook that checks the user's authentication state. If the user is not logged in, you can redirect them to the login page. This prevents unauthorized access to sensitive parts of your application.",
-                            author: { name: "Jane Smith", department: "Software Engineering", avatar: "/avatars/jane.png" },
+                            author: { id: "user-3", name: "Jane Smith", department: "Software Engineering", avatar: "/avatars/jane.png" },
                             upvotes: 8,
                             downvotes: 0,
                             followUps: []
@@ -84,22 +94,21 @@ const defaultQuestions: Question[] = [
             }
         ]
     },
-    { 
-        id: "q2", 
-        question: "What are the best practices for state management in React?", 
+    {
+        id: "q2",
+        question: "What are the best practices for state management in React?",
         relevance: "high",
-        author: { name: "Current User", department: "Your Department", avatar: "/avatars/user.png" },
+        author: { id: "user-1", name: "Current User", department: "Your Department", avatar: "/avatars/user.png" },
         answers: []
     },
-    { 
-        id: "q4", 
-        question: "How to deploy a Next.js app to Vercel?", 
+    {
+        id: "q4",
+        question: "How to deploy a Next.js app to Vercel?",
         relevance: "low",
-        author: { name: "Emily White", department: "DevOps", avatar: "/avatars/emily.png" },
+        author: { id: "user-3", name: "Emily White", department: "DevOps", avatar: "/avatars/emily.png" },
         answers: []
     },
 ];
-
 
 export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<Entry[]>(() => {
@@ -118,6 +127,14 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         return defaultQuestions;
     });
 
+    const [currentUser, setCurrentUserInternal] = useState<Author>(() => {
+        if (typeof window !== 'undefined') {
+            const savedUser = localStorage.getItem('memora-current-user');
+            return savedUser ? JSON.parse(savedUser) : USERS[0];
+        }
+        return USERS[0];
+    });
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('memora-entries', JSON.stringify(entries));
@@ -129,6 +146,14 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem('memora-questions', JSON.stringify(questions));
         }
     }, [questions]);
+
+    const setCurrentUser = (user: Author) => {
+        setCurrentUserInternal(user);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('memora-current-user', JSON.stringify(user));
+        }
+    };
+
 
     const addEntry = (entry: Entry) => {
         setEntries(prevEntries => [...prevEntries, entry]);
@@ -147,13 +172,14 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             text: `Question: ${question.question}`,
             contributor: question.author.name,
             date: new Date().toISOString().split('T')[0],
-            type: 'question'
+            type: 'question',
+            question: question.question,
         });
     };
 
     const addAnswer = (questionId: string, answer: Omit<Answer, 'followUps'|'id'>, originalQuestion: string) => {
         const newAnswer: Answer = { ...answer, id: `a-${Date.now()}`, followUps: [] };
-        
+
         const findAndAddAnswer = (qs: Question[]): Question[] => {
             return qs.map(q => {
                 if (q.id === questionId) {
@@ -171,12 +197,14 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setQuestions(prev => findAndAddAnswer(prev));
-        addEntry({
+         addEntry({
             id: `entry-${Date.now()}`,
             text: `In response to "${originalQuestion}", the answer is: ${answer.text}`,
             contributor: answer.author.name,
             date: new Date().toISOString().split('T')[0],
-            type: 'answer'
+            type: 'answer',
+            question: originalQuestion,
+            questionId: questionId,
         });
     };
 
@@ -207,13 +235,15 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             text: `A follow-up to "${originalQuestion}" asks: ${followUp.question}`,
             contributor: followUp.author.name,
             date: new Date().toISOString().split('T')[0],
-            type: 'follow-up'
+            type: 'follow-up',
+            question: followUp.question,
+            questionId: followUp.parentId
         });
     };
 
 
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp }}>
+        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users: USERS, currentUser, setCurrentUser }}>
             {children}
         </InformationContext.Provider>
     );
@@ -226,3 +256,5 @@ export const useInformation = () => {
     }
     return context;
 };
+
+    

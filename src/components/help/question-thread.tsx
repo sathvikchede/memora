@@ -7,24 +7,9 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 import React, { useEffect, useState } from 'react';
 import { useInformation, Question as QuestionType, Author as AuthorType, Answer as AnswerType } from "@/context/information-context";
 
-const ThreadItem = ({ children, author, level = 0, isLastInLevel = true, hasChildren = false }: { children: React.ReactNode, author: AuthorType, level?: number, isLastInLevel?: boolean, hasChildren?: boolean }) => {
-    const hasMoreAfter = !isLastInLevel || hasChildren;
-
+const ThreadItem = ({ children, author, level = 0 }: { children: React.ReactNode, author: AuthorType, level?: number }) => {
     return (
         <div className="relative flex items-start gap-4">
-            {level > 0 && (
-                <>
-                    {/* Vertical line from previous item down to this item's horizontal line */}
-                    <div className="absolute left-[18px] top-0 h-5 w-px bg-border"></div>
-                    
-                    {/* Horizontal connector from vertical line to the space before the bubble */}
-                    <div className="absolute left-[18px] top-5 h-px w-6 bg-border"></div>
-
-                    {/* Vertical line for items below */}
-                    {hasMoreAfter && <div className="absolute left-[18px] top-5 h-full w-px bg-border"></div>}
-                </>
-            )}
-
             <div className="relative z-10 flex flex-col items-center">
                 <Avatar>
                     <AvatarImage src={author.avatar} alt={author.name} />
@@ -55,7 +40,7 @@ interface QuestionThreadProps {
 }
 
 export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThreadProps) {
-    const { questions } = useInformation();
+    const { questions, currentUser } = useInformation();
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -72,18 +57,17 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
         return <div>Question not found.</div>
     }
 
-    const isYourQuery = thread.author.name === "Current User";
+    const isYourQuery = thread.author.id === currentUser.id;
 
     const canFollowUp = (level: number) => level < 2;
 
     const renderAnswers = (question: QuestionType, answers: AnswerType[], level: number) => {
-        return answers.map((answer, index) => {
+        return answers.map((answer) => {
             const hasFollowUps = answer.followUps && answer.followUps.length > 0;
-            const isLast = index === answers.length - 1;
             
             return (
                 <div className="space-y-6 pl-8" key={answer.id}>
-                    <ThreadItem author={answer.author} level={level + 1} isLastInLevel={isLast && !hasFollowUps} hasChildren={hasFollowUps}>
+                    <ThreadItem author={answer.author} level={level + 1}>
                         <p className="line-clamp-3">{answer.text}</p>
                         <Button variant="link" className="p-0 h-auto text-blue-500">Read More</Button>
                         <div className="mt-4 flex">
@@ -103,13 +87,12 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
     }
 
     const renderFollowUps = (originalQuestion: QuestionType, followUps: QuestionType[], level: number) => {
-        return followUps.map((followUp, index) => {
+        return followUps.map((followUp) => {
              const hasAnswers = followUp.answers && followUp.answers.length > 0;
-             const isLast = index === followUps.length - 1;
 
             return (
                 <div className="space-y-6 pl-8" key={followUp.id}>
-                    <ThreadItem author={followUp.author} level={level + 1} isLastInLevel={isLast && !hasAnswers} hasChildren={hasAnswers}>
+                    <ThreadItem author={followUp.author} level={level + 1}>
                         <p>{followUp.question}</p>
                         <div className="flex justify-end mt-4">
                             <Button onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
@@ -125,7 +108,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
 
     return (
         <div className="space-y-6">
-           <ThreadItem author={thread.author} level={0} isLastInLevel={!hasAnswers} hasChildren={hasAnswers}>
+           <ThreadItem author={thread.author} level={0}>
                 <p>{thread.question}</p>
                 <div className="flex justify-end mt-4">
                     <Button onClick={() => onAnswer(thread.id, thread.question)}>Answer</Button>
@@ -135,3 +118,5 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
         </div>
     );
 }
+
+    
