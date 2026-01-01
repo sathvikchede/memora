@@ -36,16 +36,16 @@ const MIcon = () => (
 );
 
 const menuItems = [
-  { href: "/ask", icon: HelpCircle, label: "Ask", tooltip: "Ask" },
-  { href: "/add", icon: Plus, label: "Add", tooltip: "Add" },
-  { href: "/help", icon: AlertCircle, label: "Help", tooltip: "Help" },
-  { href: "/chat", icon: MessageSquareText, label: "Chat", tooltip: "Chat" },
-  { href: "/people", icon: Users, label: "People", tooltip: "People" },
+  { href: "/ask", icon: HelpCircle, label: "Ask.", tooltip: "Ask" },
+  { href: "/add", icon: Plus, label: "Add.", tooltip: "Add" },
+  { href: "/help", icon: AlertCircle, label: "Help.", tooltip: "Help" },
+  { href: "/chat", icon: MessageSquareText, label: "Chat.", tooltip: "Chat" },
+  { href: "/people", icon: Users, label: "People.", tooltip: "People" },
 ];
 
 const bottomMenuItems = [
-  { href: "/space", icon: Atom, label: "Space", tooltip: "Space" },
-  { href: "/profile", icon: User, label: "Profile", tooltip: "Profile" },
+  { href: "/space", icon: Atom, label: "Space.", tooltip: "Space" },
+  { href: "/profile", icon: User, label: "Profile.", tooltip: "Profile" },
 ];
 
 interface MainSidebarProps {
