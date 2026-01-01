@@ -37,6 +37,33 @@ interface ChatInterfaceProps {
   isPostView?: boolean;
 }
 
+const MIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-full w-full"
+  >
+    <path
+      d="M6 18V6H9.468L12 10.692L14.532 6H18V18"
+      stroke="white"
+      strokeWidth="2"
+    />
+    <path
+      d="M18 18V6"
+      stroke="white"
+      strokeWidth="2"
+    />
+     <path
+      d="M18 18H15"
+      stroke="white"
+      strokeWidth="2"
+    />
+  </svg>
+);
+
 const initialMessages: Message[] = [
     { id: 'ai-1', text: "Hello! How can I help you today?", sender: 'ai' },
 ];
@@ -115,8 +142,10 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               )}
             >
               {message.sender === "ai" && (
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>AI</AvatarFallback>
+                <Avatar className="h-8 w-8 border border-white">
+                  <AvatarFallback className="bg-black text-white">
+                    <MIcon />
+                  </AvatarFallback>
                 </Avatar>
               )}
               <div
@@ -145,8 +174,10 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
           ))}
            {isThinking && (
              <div className="flex items-start gap-3 justify-start">
-                <Avatar className="h-8 w-8">
-                    <AvatarFallback>AI</AvatarFallback>
+                <Avatar className="h-8 w-8 border border-white">
+                  <AvatarFallback className="bg-black text-white">
+                    <MIcon />
+                  </AvatarFallback>
                 </Avatar>
                 <div className="bg-muted rounded-lg p-3">
                     <p className="text-sm">Thinking...</p>
