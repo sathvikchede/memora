@@ -138,20 +138,18 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               <div
                 className={cn(
                   "max-w-[75%] rounded-lg p-3 border",
-                  message.sender === "user"
-                    ? "bg-black text-white border-white"
-                    : "bg-black text-white border-white"
+                  "bg-black text-white border-white"
                 )}
               >
                 <p className="text-sm">{message.text}</p>
                 {message.sender === 'ai' && !isPostView && (
                     <div className="mt-4 flex gap-2">
                         {message.text.includes("enough information") ? (
-                            <Button variant="secondary" size="sm" onClick={onPost}>Post</Button>
+                            <Button variant="outline" size="sm" className="bg-black border-white" onClick={onPost}>Post</Button>
                         ) : (
                             <>
-                                <Button variant="secondary" size="sm" onClick={onShowSources}>Sources</Button>
-                                <Button variant="secondary" size="sm" onClick={onPost}>Post</Button>
+                                <Button variant="outline" size="sm" className="bg-black border-white" onClick={onShowSources}>Sources</Button>
+                                <Button variant="outline" size="sm" className="bg-black border-white" onClick={onPost}>Post</Button>
                             </>
                         )}
                     </div>
