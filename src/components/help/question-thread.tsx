@@ -17,7 +17,10 @@ const ThreadItem = ({ children, author, level = 0, hasMoreAfter = false }: { chi
         </div>
 
         {level > 0 && (
-            <div className="absolute left-[-16px] top-5 h-px w-4 bg-border"></div>
+             <div 
+                className="absolute h-[calc(1.25rem-1px)] w-4 border-b border-l border-border"
+                style={{ left: '-16px', top: '0px', borderBottomLeftRadius: '0.5rem' }}
+            ></div>
         )}
         
         {hasMoreAfter && (
