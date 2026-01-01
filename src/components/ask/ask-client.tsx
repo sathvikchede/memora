@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { History, PlusCircle, ChevronLeft } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
+import { useInformation } from "@/context/information-context";
+
 
 type View = "new-chat" | "history" | "chat-detail" | "sources" | "post";
 type HistoryItem = { id: string; title: string; date: string };
@@ -15,14 +17,11 @@ const fakeHistory: HistoryItem[] = [
   { id: "3", title: "Quantum computing explained", date: "2024-07-25" },
 ];
 
-const fakeSources = [
-    { contributor: "Alice", rawInformation: "AI can personalize learning paths.", date: "2024-07-20", type: "add" },
-    { contributor: "Bob", rawInformation: "It helps automate grading.", date: "2024-07-19", type: "help" },
-];
 
 export function AskClient() {
   const [view, setView] = useState<View>("new-chat");
   const [activeChat, setActiveChat] = useState<HistoryItem | null>(null);
+  const { entries } = useInformation();
 
   const renderNav = () => {
     switch (view) {
@@ -102,13 +101,13 @@ export function AskClient() {
         case "sources":
             return (
                 <div className="divide-y divide-border p-4">
-                    {fakeSources.map((source, index) => (
+                    {entries.map((source, index) => (
                         <div key={index} className="py-4">
                             <div className="flex justify-between text-sm text-muted-foreground">
                                 <span>{source.type}</span>
                                 <span>{source.date}</span>
                             </div>
-                            <p className="my-2">{source.rawInformation}</p>
+                            <p className="my-2">{source.text}</p>
                             <div className="text-right">
                                 <Button variant="link" className="p-0 h-auto text-muted-foreground">
                                     - {source.contributor}

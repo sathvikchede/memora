@@ -22,6 +22,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useInformation } from "@/context/information-context";
+import { answerUserQuery, AnswerUserQueryInput } from "@/ai/flows/answer-user-queries-with-sources";
 
 interface Message {
   id: string;
@@ -45,18 +47,47 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
   const formId = useId();
+  const { entries } = useInformation();
+  const [isThinking, setIsThinking] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim()) {
         const userMessage: Message = { id: `user-${Date.now()}`, text: input, sender: 'user' };
         setMessages(prev => [...prev, userMessage]);
         setInput("");
+        setIsThinking(true);
         
-        // Simulate AI response
-        setTimeout(() => {
-            const aiResponse: Message = { id: `ai-${Date.now()}`, text: `This is a simulated AI response to: "${userMessage.text}". I don't have enough information yet.`, sender: 'ai' };
-            setMessages(prev => [...prev, aiResponse]);
-        }, 1000);
+        if (entries.length === 0) {
+            // Simulate AI response
+            setTimeout(() => {
+                const aiResponse: Message = { id: `ai-${Date.now()}`, text: `This is a simulated AI response to: "${userMessage.text}". I don't have enough information yet.`, sender: 'ai' };
+                setMessages(prev => [...prev, aiResponse]);
+                setIsThinking(false);
+            }, 1000);
+        } else {
+            const queryInput: AnswerUserQueryInput = {
+                query: input,
+                summaries: entries.map(e => e.text),
+                sources: entries.map(e => ({
+                    contributor: e.contributor,
+                    rawInformation: e.text,
+                    date: e.date,
+                    type: e.type,
+                })),
+            };
+
+            try {
+                const result = await answerUserQuery(queryInput);
+                const aiResponse: Message = { id: `ai-${Date.now()}`, text: result.answer, sender: 'ai' };
+                setMessages(prev => [...prev, aiResponse]);
+            } catch (error) {
+                console.error("Error calling AI flow:", error);
+                const errorResponse: Message = { id: `ai-${Date.now()}`, text: "Sorry, I encountered an error while processing your request.", sender: 'ai' };
+                setMessages(prev => [...prev, errorResponse]);
+            } finally {
+                setIsThinking(false);
+            }
+        }
     }
   };
 
@@ -112,6 +143,16 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               </div>
             </div>
           ))}
+           {isThinking && (
+             <div className="flex items-start gap-3 justify-start">
+                <Avatar className="h-8 w-8">
+                    <AvatarFallback>AI</AvatarFallback>
+                </Avatar>
+                <div className="bg-muted rounded-lg p-3">
+                    <p className="text-sm">Thinking...</p>
+                </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
 
@@ -120,7 +161,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
             <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Upload">
+                        <Button variant="ghost" size="icon" aria-label="Upload" disabled={isThinking}>
                             <Upload />
                             <span className="hidden md:ml-2 md:inline">Upload</span>
                         </Button>
@@ -133,13 +174,13 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                 </DropdownMenu>
                 
                 {isPostView && (
-                    <Button variant="ghost" size="icon" aria-label="Anonymous">
+                    <Button variant="ghost" size="icon" aria-label="Anonymous" disabled={isThinking}>
                         <UserX />
                         <span className="hidden md:ml-2 md:inline">Anonymous</span>
                     </Button>
                 )}
 
-                <Button variant="ghost" size="icon" aria-label="Voice Input">
+                <Button variant="ghost" size="icon" aria-label="Voice Input" disabled={isThinking}>
                     <Mic />
                     <span className="hidden md:ml-2 md:inline">Voice</span>
                 </Button>
@@ -162,14 +203,19 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                 placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
                 className="min-h-[48px] resize-none pr-12"
                 rows={1}
+                disabled={isThinking}
                 />
                 <Button
                     type="submit"
                     size="icon"
                     className="absolute bottom-2 right-2"
-                    disabled={!input.trim()}
+                    disabled={!input.trim() || isThinking}
                 >
-                    <Send className="h-4 w-4" />
+                    {isThinking ? (
+                        <div className="h-4 w-4 border-2 border-background/80 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                        <Send className="h-4 w-4" />
+                    )}
                 </Button>
             </form>
         </div>

@@ -21,15 +21,10 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-interface Entry {
-    id: string;
-    text: string;
-    status?: 'success' | 'adjusted' | 'mismatch';
-}
+import { useInformation, Entry } from "@/context/information-context";
 
 export function AddClient() {
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const { entries, addEntry } = useInformation();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
@@ -37,10 +32,17 @@ export function AddClient() {
 
   const handleSend = () => {
     if (input.trim()) {
-        const randomStatus = ['success', 'adjusted', 'mismatch'][Math.floor(Math.random() * 3)] as 'success' | 'adjusted' | 'mismatch';
-        const newEntry: Entry = { id: `entry-${Date.now()}`, text: input, status: randomStatus };
-        setEntries(prev => [...prev, newEntry]);
-        setInput("");
+      const randomStatus = ['success', 'adjusted', 'mismatch'][Math.floor(Math.random() * 3)] as 'success' | 'adjusted' | 'mismatch';
+      const newEntry: Entry = {
+        id: `entry-${Date.now()}`,
+        text: input,
+        contributor: "You",
+        date: new Date().toISOString().split("T")[0],
+        type: 'add',
+        status: randomStatus
+      };
+      addEntry(newEntry);
+      setInput("");
     }
   };
 
