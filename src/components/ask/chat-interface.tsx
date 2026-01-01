@@ -48,26 +48,18 @@ const MIcon = () => (
       className="h-full w-full"
     >
       <path
-        d="M9 16V8H7V16H9Z"
+        d="M8 15V9H6V15H8Z"
         fill="white"
-        stroke="white"
-        strokeWidth="1.5"
       />
       <path
-        d="M9 10C9 8.89543 9.89543 8 11 8C12.1046 8 13 8.89543 13 10V16H11V10"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M8 11C8 10.4477 8.44772 10 9 10C9.55228 10 10 10.4477 10 11V15H8V11Z"
+        fill="white"
       />
       <path
-        d="M13 10C13 8.89543 13.8954 8 15 8C16.1046 8 17 8.89543 17 10V16H15V10"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M10 11C10 10.4477 10.4477 10 11 10C11.5523 10 12 10.4477 12 11V15H10V11Z"
+        fill="white"
       />
-      <circle cx="18" cy="16" r="1" fill="white" />
+      <circle cx="13.5" cy="15" r="1" fill="white" />
     </svg>
   );
 
