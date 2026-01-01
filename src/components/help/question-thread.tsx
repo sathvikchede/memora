@@ -7,20 +7,21 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 import React from 'react';
 import { useInformation, Question as QuestionType, Author as AuthorType, Answer as AnswerType } from "@/context/information-context";
 
-const ThreadItem = ({ children, author, isLast, level = 0, hasMoreAfter = false }: { children: React.ReactNode, author: AuthorType, isLast: boolean, level?: number, hasMoreAfter?: boolean }) => (
+const ThreadItem = ({ children, author, level = 0, hasMoreAfter = false }: { children: React.ReactNode, author: AuthorType, level?: number, hasMoreAfter?: boolean }) => (
     <div className="relative flex items-start gap-4">
-        <div className="relative flex flex-col items-center">
+        <div className="relative z-10 flex flex-col items-center">
             <Avatar>
                 <AvatarImage src={author.avatar} alt={author.name} />
                 <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            {hasMoreAfter && <div className="absolute top-10 h-full w-px bg-border" style={{ left: '50%', transform: 'translateX(-50%)' }}></div>}
         </div>
-        
+
         {level > 0 && (
-          <>
-            <div className="absolute left-5 top-5 h-px w-3 bg-border"></div>
-          </>
+            <div className="absolute left-5 top-5 h-px w-4 bg-border"></div>
+        )}
+        
+        {hasMoreAfter && (
+            <div className="absolute top-10 h-full w-px bg-border" style={{ left: '20px', transform: 'translateX(-50%)' }}></div>
         )}
         
         <div className="w-full">
@@ -58,13 +59,12 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
 
     const renderAnswers = (question: QuestionType, answers: AnswerType[], level: number) => {
         return answers.map((answer, answerIndex) => {
-            const isLastAnswer = answerIndex === answers.length - 1;
             const hasFollowUps = answer.followUps && answer.followUps.length > 0;
-            const hasMoreAfter = !isLastAnswer || hasFollowUps;
-
+            const isLastInList = answerIndex === answers.length - 1;
+            
             return (
-                <div className="pl-8" key={answer.id}>
-                    <ThreadItem author={answer.author} isLast={!hasFollowUps} level={level + 1} hasMoreAfter={hasFollowUps}>
+                <div className="relative pl-8" key={answer.id}>
+                    <ThreadItem author={answer.author} level={level + 1} hasMoreAfter={hasFollowUps}>
                         <p className="line-clamp-3">{answer.text}</p>
                         <Button variant="link" className="p-0 h-auto text-blue-500">Read More</Button>
                         <div className="mt-4 flex">
@@ -77,7 +77,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
                             </div>
                         )}
                     </ThreadItem>
-                    {hasFollowUps && renderFollowUps(question, answer.followUps, level + 1)}
+                    {hasFollowUps && <div className="mt-6 space-y-6">{renderFollowUps(question, answer.followUps, level + 1)}</div>}
                 </div>
             );
         });
@@ -85,19 +85,18 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
 
     const renderFollowUps = (originalQuestion: QuestionType, followUps: QuestionType[], level: number) => {
         return followUps.map((followUp, followUpIndex) => {
-             const isLastFollowUp = followUpIndex === followUps.length - 1;
              const hasAnswers = followUp.answers && followUp.answers.length > 0;
-             const hasMoreAfter = !isLastFollowUp || hasAnswers;
+             const isLastInList = followUpIndex === followUps.length - 1;
 
             return (
-                <div className="pl-8" key={followUp.id}>
-                    <ThreadItem author={followUp.author} isLast={!hasAnswers} level={level + 1} hasMoreAfter={hasAnswers}>
+                <div className="relative pl-8" key={followUp.id}>
+                    <ThreadItem author={followUp.author} level={level + 1} hasMoreAfter={hasAnswers}>
                         <p>{followUp.question}</p>
                         <div className="flex justify-end mt-4">
                             <Button onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
                         </div>
                     </ThreadItem>
-                    {hasAnswers && renderAnswers(followUp, followUp.answers, level + 1)}
+                    {hasAnswers && <div className="mt-6 space-y-6">{renderAnswers(followUp, followUp.answers, level + 1)}</div>}
                 </div>
             );
         });
@@ -105,13 +104,13 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
 
     return (
         <div className="space-y-6">
-           <ThreadItem author={thread.author} isLast={thread.answers.length === 0} level={0} hasMoreAfter={thread.answers.length > 0}>
+           <ThreadItem author={thread.author} level={0} hasMoreAfter={thread.answers.length > 0}>
                 <p>{thread.question}</p>
                 <div className="flex justify-end mt-4">
                     <Button onClick={() => onAnswer(thread.id, thread.question)}>Answer</Button>
                 </div>
             </ThreadItem>
-            {renderAnswers(thread, thread.answers, 0)}
+            {thread.answers.length > 0 && <div className="mt-6 space-y-6">{renderAnswers(thread, thread.answers, 0)}</div>}
         </div>
     );
 }
