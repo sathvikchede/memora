@@ -40,7 +40,7 @@ interface QuestionThreadProps {
 }
 
 export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThreadProps) {
-    const { questions, currentUser } = useInformation();
+    const { questions, currentUser, upvoteAnswer, downvoteAnswer } = useInformation();
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -71,8 +71,8 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
                         <p className="line-clamp-3">{answer.text}</p>
                         <Button variant="link" className="p-0 h-auto text-blue-500">Read More</Button>
                         <div className="mt-4 flex">
-                            <Button variant="outline" className="flex-1 rounded-r-none"><ThumbsUp className="mr-2 h-4 w-4" /> {answer.upvotes}</Button>
-                            <Button variant="outline" className="flex-1 rounded-l-none"><ThumbsDown className="mr-2 h-4 w-4" /> {answer.downvotes}</Button>
+                            <Button variant="outline" className="flex-1 rounded-r-none" onClick={() => upvoteAnswer(question.id, answer.id)}><ThumbsUp className="mr-2 h-4 w-4" /> {answer.upvotes}</Button>
+                            <Button variant="outline" className="flex-1 rounded-l-none" onClick={() => downvoteAnswer(question.id, answer.id)}><ThumbsDown className="mr-2 h-4 w-4" /> {answer.downvotes}</Button>
                         </div>
                          {isYourQuery && canFollowUp(level) && (
                             <div className="flex justify-end mt-2">
@@ -118,5 +118,3 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
         </div>
     );
 }
-
-    

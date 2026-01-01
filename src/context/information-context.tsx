@@ -11,7 +11,7 @@ export interface Author {
 }
 
 export interface Answer {
-    id: string;
+    id:string;
     text: string;
     author: Author;
     upvotes: number;
@@ -56,46 +56,43 @@ interface InformationContextType {
     users: Author[];
     currentUser: Author;
     setCurrentUser: (user: Author) => void;
+    upvoteAnswer: (questionId: string, answerId: string) => void;
+    downvoteAnswer: (questionId: string, answerId: string) => void;
 }
 
 const InformationContext = createContext<InformationContextType | undefined>(undefined);
 
 export const InformationProvider = ({ children }: { children: ReactNode }) => {
-    const [entries, setEntries] = useState<Entry[]>(() => {
-        if (typeof window !== 'undefined') {
-            const savedEntries = localStorage.getItem('memora-entries');
-            return savedEntries ? JSON.parse(savedEntries) : [];
-        }
-        return [];
-    });
-
-     const [questions, setQuestions] = useState<Question[]>(() => {
-        if (typeof window !== 'undefined') {
-            const savedQuestions = localStorage.getItem('memora-questions');
-            return savedQuestions ? JSON.parse(savedQuestions) : [];
-        }
-        return [];
-    });
-
-    const [currentUser, setCurrentUserInternal] = useState<Author>(() => {
-        if (typeof window !== 'undefined') {
-            const savedUser = localStorage.getItem('memora-current-user');
-            return savedUser ? JSON.parse(savedUser) : USERS[0];
-        }
-        return USERS[0];
-    });
+    const [entries, setEntries] = useState<Entry[]>([]);
+    const [questions, setQuestions] = useState<Question[]>([]);
+    const [currentUser, setCurrentUserInternal] = useState<Author>(USERS[0]);
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
         if (typeof window !== 'undefined') {
+            const savedEntries = localStorage.getItem('memora-entries');
+            if (savedEntries) setEntries(JSON.parse(savedEntries));
+
+            const savedQuestions = localStorage.getItem('memora-questions');
+            if (savedQuestions) setQuestions(JSON.parse(savedQuestions));
+            
+            const savedUser = localStorage.getItem('memora-current-user');
+            if(savedUser) setCurrentUserInternal(JSON.parse(savedUser));
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isClient) {
             localStorage.setItem('memora-entries', JSON.stringify(entries));
         }
-    }, [entries]);
+    }, [entries, isClient]);
 
      useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (isClient) {
             localStorage.setItem('memora-questions', JSON.stringify(questions));
         }
-    }, [questions]);
+    }, [questions, isClient]);
 
     const setCurrentUser = (user: Author) => {
         setCurrentUserInternal(user);
@@ -104,9 +101,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-
     const addEntry = (entry: Entry) => {
-        setEntries(prevEntries => [...prevEntries, entry]);
+        setEntries(prevEntries => [...prevEntries, { ...entry, id: `entry-${Date.now()}` }]);
     };
 
     const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => {
@@ -191,9 +187,39 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         });
     };
 
+    const updateVotes = (questionId: string, answerId: string, voteType: 'up' | 'down') => {
+        const findAndUpdate = (qs: Question[]): Question[] => {
+            return qs.map(q => {
+                const updatedAnswers = q.answers.map(a => {
+                    if (a.id === answerId && (q.id === questionId || q.parentId === questionId)) {
+                        return {
+                            ...a,
+                            upvotes: voteType === 'up' ? a.upvotes + 1 : a.upvotes,
+                            downvotes: voteType === 'down' ? a.downvotes + 1 : a.downvotes,
+                        };
+                    }
+                    if (a.followUps?.length > 0) {
+                        return { ...a, followUps: findAndUpdate(a.followUps) };
+                    }
+                    return a;
+                });
+
+                return { ...q, answers: updatedAnswers };
+            });
+        };
+        setQuestions(prev => findAndUpdate(prev));
+    };
+
+    const upvoteAnswer = (questionId: string, answerId: string) => {
+        updateVotes(questionId, answerId, 'up');
+    };
+
+    const downvoteAnswer = (questionId: string, answerId: string) => {
+        updateVotes(questionId, answerId, 'down');
+    };
 
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users: USERS, currentUser, setCurrentUser }}>
+        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users: USERS, currentUser, setCurrentUser, upvoteAnswer, downvoteAnswer }}>
             {children}
         </InformationContext.Provider>
     );
@@ -206,5 +232,3 @@ export const useInformation = () => {
     }
     return context;
 };
-
-    
