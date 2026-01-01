@@ -129,7 +129,6 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
   }, [input, isMobile]);
 
   const atBottom = messages.length > 2;
-  const lastAiMessage = messages.slice().reverse().find(m => m.sender === 'ai');
 
   return (
     <div className={cn("flex h-full flex-col", { "justify-center": !atBottom && !isPostView })}>
@@ -152,13 +151,25 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               )}
               <div
                 className={cn(
-                  "max-w-[75%] rounded-lg p-3",
+                  "max-w-[75%] rounded-lg flex flex-col",
                   message.sender === "user"
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted"
                 )}
               >
-                <p className="text-sm">{message.text}</p>
+                <p className="text-sm p-3">{message.text}</p>
+                {message.showActions && !isPostView && (
+                    <div className="mt-2 flex items-center justify-stretch gap-px border-t">
+                        {message.text.includes("enough information") ? (
+                             <Button variant="ghost" size="sm" onClick={onPost} className="flex-1 rounded-t-none rounded-b-lg">Post</Button>
+                        ) : (
+                            <>
+                                <Button variant="ghost" size="sm" onClick={onShowSources} className="flex-1 rounded-t-none rounded-bl-lg">Sources</Button>
+                                <Button variant="ghost" size="sm" onClick={onPost} className="flex-1 rounded-t-none rounded-br-lg">Post</Button>
+                            </>
+                        )}
+                    </div>
+                )}
               </div>
             </div>
           ))}
@@ -178,18 +189,6 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
       </ScrollArea>
 
       <div className={cn("mt-4 flex-shrink-0", { "sticky bottom-0 bg-background py-4": atBottom || isPostView })}>
-        {lastAiMessage?.showActions && !isPostView && (
-            <div className="mb-2 flex items-center justify-end gap-2">
-                {lastAiMessage.text.includes("enough information") ? (
-                     <Button variant="outline" size="sm" onClick={onPost}>Post</Button>
-                ) : (
-                    <>
-                        <Button variant="outline" size="sm" onClick={onShowSources}>Sources</Button>
-                        <Button variant="outline" size="sm" onClick={onPost}>Post</Button>
-                    </>
-                )}
-            </div>
-        )}
         <div className="space-y-2">
             <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
                 <DropdownMenu>
