@@ -36,16 +36,16 @@ const MIcon = () => (
 );
 
 const menuItems = [
-  { href: "/ask", icon: HelpCircle, label: "ask.", tooltip: "Ask" },
-  { href: "/add", icon: Plus, label: "add.", tooltip: "Add" },
-  { href: "/help", icon: AlertCircle, label: "help.", tooltip: "Help" },
-  { href: "/chat", icon: MessageSquareText, label: "chat.", tooltip: "Chat" },
-  { href: "/people", icon: Users, label: "people.", tooltip: "People" },
+  { href: "/ask", icon: HelpCircle, label: "Ask", tooltip: "Ask" },
+  { href: "/add", icon: Plus, label: "Add", tooltip: "Add" },
+  { href: "/help", icon: AlertCircle, label: "Help", tooltip: "Help" },
+  { href: "/chat", icon: MessageSquareText, label: "Chat", tooltip: "Chat" },
+  { href: "/people", icon: Users, label: "People", tooltip: "People" },
 ];
 
 const bottomMenuItems = [
-  { href: "/space", icon: Atom, label: "space.", tooltip: "Space" },
-  { href: "/profile", icon: User, label: "profile.", tooltip: "Profile" },
+  { href: "/space", icon: Atom, label: "Space", tooltip: "Space" },
+  { href: "/profile", icon: User, label: "Profile", tooltip: "Profile" },
 ];
 
 interface MainSidebarProps {
@@ -72,7 +72,7 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
                 asChild
                 isActive={activeTab === item.href}
                 tooltip={{ children: item.tooltip, side: "right" }}
-                className="font-semibold"
+                className="font-semibold justify-center"
               >
                 <Link href={item.href}>
                   <item.icon className="stroke-[2.5px]" />
@@ -91,7 +91,7 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
                 asChild
                 isActive={activeTab === item.href}
                 tooltip={{ children: item.tooltip, side: "right" }}
-                className="font-semibold"
+                className="font-semibold justify-center"
               >
                 <Link href={item.href}>
                   <item.icon className="stroke-[2.5px]" />
