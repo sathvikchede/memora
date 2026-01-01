@@ -9,23 +9,22 @@ import { useInformation, Question as QuestionType, Author as AuthorType, Answer 
 
 const ThreadItem = ({ children, author, level = 0, hasMoreAfter = false }: { children: React.ReactNode, author: AuthorType, level?: number, hasMoreAfter?: boolean }) => (
     <div className="relative flex items-start gap-4">
+        {level > 0 && (
+             <div 
+                className="absolute w-6 h-6 border-b border-l border-border rounded-bl-lg"
+                style={{ left: '-16px', top: '0px' }}
+            ></div>
+        )}
+        
         <div className="relative z-10 flex flex-col items-center">
             <Avatar>
                 <AvatarImage src={author.avatar} alt={author.name} />
                 <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
             </Avatar>
+             {hasMoreAfter && (
+                <div className="absolute top-10 h-full w-px bg-border"></div>
+            )}
         </div>
-
-        {level > 0 && (
-             <div 
-                className="absolute h-[21px] w-4 border-b border-l border-border"
-                style={{ left: '4px', top: '0px', borderBottomLeftRadius: '0.5rem' }}
-            ></div>
-        )}
-        
-        {hasMoreAfter && (
-            <div className="absolute top-10 h-full w-px bg-border" style={{ left: '20px', transform: 'translateX(-50%)' }}></div>
-        )}
         
         <div className="w-full">
             <div className="flex items-center justify-between">
