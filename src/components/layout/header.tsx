@@ -13,12 +13,18 @@ export function Header({ activeTab }: HeaderProps) {
     <>
       <header className="flex h-14 items-center gap-4 px-4 sm:px-6">
         <SidebarTrigger className="md:hidden" />
-        <div className="hidden items-baseline gap-4 md:flex">
-          <h1 className="text-2xl font-bold">memora.</h1>
-          {activeTab && <span className="text-sm text-muted-foreground">{activeTab}</span>}
+        <div className="flex flex-1 items-center justify-center">
+          {activeTab && (
+            <span className="text-xl font-semibold text-white">
+              {activeTab}
+            </span>
+          )}
         </div>
         <div className="ml-auto">
-          <Button variant="outline" className="pointer-events-none rounded-full">
+          <Button
+            variant="outline"
+            className="pointer-events-none rounded-full"
+          >
             1500 Credits
           </Button>
         </div>
