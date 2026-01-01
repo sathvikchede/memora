@@ -1,23 +1,27 @@
+
 "use client";
 
 import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Bold, Italic, Underline, Image as ImageIcon, Paperclip, UserX } from "lucide-react";
+import { useInformation } from '@/context/information-context';
 
 interface PostEditorProps {
     mode: "post-question" | "answer-question" | "follow-up-question";
     question?: string;
+    questionId?: string; // For answers and follow-ups
+    answerId?: string; // For follow-ups
     onPost: () => void;
 }
 
-export function PostEditor({ mode, question = "", onPost }: PostEditorProps) {
+export function PostEditor({ mode, question = "", questionId, answerId, onPost }: PostEditorProps) {
     const [content, setContent] = useState(mode === 'post-question' ? question : "");
     const [isAnonymous, setIsAnonymous] = useState(false);
     const editorRef = useRef<HTMLTextAreaElement>(null);
+    const { addQuestion, addAnswer, addFollowUp } = useInformation();
 
     const handleFormat = (format: string) => {
-        // This is a simplified implementation. A real implementation would use a proper rich text editor.
         if (editorRef.current) {
             editorRef.current.focus();
         }
@@ -30,6 +34,31 @@ export function PostEditor({ mode, question = "", onPost }: PostEditorProps) {
             case "answer-question": return "Post Answer";
             case "follow-up-question": return "Post Follow-up";
         }
+    }
+
+    const handlePost = () => {
+        const author = { 
+            name: isAnonymous ? "Anonymous" : "Current User", 
+            department: isAnonymous ? "Unknown" : "Your Department", 
+            avatar: isAnonymous ? "/avatars/anonymous.png" : "/avatars/user.png" 
+        };
+
+        switch (mode) {
+            case "post-question":
+                addQuestion({ question: content, author });
+                break;
+            case "answer-question":
+                if(questionId) {
+                    addAnswer(questionId, { text: content, author, upvotes: 0, downvotes: 0 });
+                }
+                break;
+            case "follow-up-question":
+                 if (answerId && questionId) {
+                    addFollowUp(answerId, { question: content, author, parentId: questionId });
+                }
+                break;
+        }
+        onPost();
     }
 
     return (
@@ -63,7 +92,7 @@ export function PostEditor({ mode, question = "", onPost }: PostEditorProps) {
                 className="flex-1 resize-none rounded-none border-0 focus-visible:ring-0"
             />
             <div className="flex-shrink-0 p-4">
-                <Button className="w-full" onClick={onPost} disabled={!content.trim()}>
+                <Button className="w-full" onClick={handlePost} disabled={!content.trim()}>
                     {getButtonText()}
                 </Button>
             </div>

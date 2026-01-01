@@ -1,19 +1,22 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
-
-const fakeYourQueries = [
-    { id: "q1", question: "How to set up Firebase Authentication in a Next.js app?" },
-];
+import { useInformation } from "@/context/information-context";
 
 interface YourQueriesProps {
     onQuestionSelect: (id: string, question: string) => void;
 }
 
 export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
+    const { questions } = useInformation();
+    // This is a mock user check. In a real app, you'd get the current user's ID.
+    const currentUser = "Current User"; 
+    const yourQueries = questions.filter(q => q.author.name === currentUser);
+
     return (
         <div className="space-y-2">
-            {fakeYourQueries.map(query => (
+            {yourQueries.map(query => (
                 <Button 
                     key={query.id} 
                     variant="outline" 
@@ -23,7 +26,7 @@ export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
                     {query.question}
                 </Button>
             ))}
-            {fakeYourQueries.length === 0 && (
+            {yourQueries.length === 0 && (
                 <p className="text-center text-muted-foreground">You haven't posted any questions yet.</p>
             )}
         </div>

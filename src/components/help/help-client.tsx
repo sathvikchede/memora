@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -20,50 +21,53 @@ function HelpClientContent() {
     const [view, setView] = useState<HelpView>("open-queries");
     const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
     const [activeQuestion, setActiveQuestion] = useState<string>("");
+    const [activeAnswerId, setActiveAnswerId] = useState<string | null>(null);
     
     useEffect(() => {
         const viewParam = searchParams.get('view') as HelpView;
         const idParam = searchParams.get('id');
         const questionParam = searchParams.get('question');
+        const answerIdParam = searchParams.get('answerId');
         
         if (viewParam) setView(viewParam);
         else setView('open-queries');
         
         if (idParam) setActiveQuestionId(idParam);
         else setActiveQuestionId(null);
+
+        if (answerIdParam) setActiveAnswerId(answerIdParam);
+        else setActiveAnswerId(null);
         
         if (questionParam) setActiveQuestion(decodeURIComponent(questionParam));
         else setActiveQuestion("");
 
     }, [searchParams]);
     
-    const navigate = (newView: HelpView, params?: Record<string, string>) => {
-        const newParams = new URLSearchParams(searchParams.toString());
+    const navigate = (newView: HelpView, params?: Record<string, string | undefined>) => {
+        const newParams = new URLSearchParams();
         newParams.set('view', newView);
         if (params) {
             Object.entries(params).forEach(([key, value]) => {
                 if (value) newParams.set(key, value);
-                else newParams.delete(key);
             });
         }
         router.push(`/help?${newParams.toString()}`);
     };
 
     const handleBack = () => {
+        const from = searchParams.get('from') || 'open-queries';
         switch (view) {
             case "question-detail":
-                const from = searchParams.get('from') || 'open-queries';
-                navigate(from as HelpView, { id: undefined, question: undefined });
+                navigate(from as HelpView);
                 break;
             case "post-question":
-                router.back(); // Go back to the previous page (ask tab)
+                router.back(); 
                 break;
             case "answer-question":
             case "follow-up-question":
-                navigate("question-detail", { id: activeQuestionId!, question: activeQuestion });
+                navigate("question-detail", { id: activeQuestionId!, question: activeQuestion, from });
                 break;
             default:
-                // This case should ideally not be hit if back button is only shown in specific views
                 navigate("open-queries");
         }
     };
@@ -102,6 +106,7 @@ function HelpClientContent() {
     };
 
     const renderContent = () => {
+        const from = searchParams.get('from') || 'open-queries';
         switch (view) {
             case "open-queries":
                 return <OpenQueries onQuestionSelect={(id, question) => navigate("question-detail", { id, question, from: 'open-queries' })} />;
@@ -113,8 +118,8 @@ function HelpClientContent() {
                 if (!activeQuestionId) return <div>Question not found.</div>;
                 return <QuestionThread 
                             questionId={activeQuestionId} 
-                            onAnswer={(id, q) => navigate('answer-question', {id, question: q})}
-                            onFollowUp={(id, q) => navigate('follow-up-question', {id, question: q})}
+                            onAnswer={(id, q) => navigate('answer-question', {id, question: q, from})}
+                            onFollowUp={(qId, aId, q) => navigate('follow-up-question', {id: qId, answerId: aId, question: q, from})}
                         />;
             case "post-question":
                 return <PostEditor 
@@ -127,14 +132,17 @@ function HelpClientContent() {
                 return <PostEditor 
                             mode="answer-question"
                             question={activeQuestion}
-                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion })}
+                            questionId={activeQuestionId}
+                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion, from })}
                         />;
             case "follow-up-question":
-                 if (!activeQuestionId) return <div>Question not found.</div>;
+                 if (!activeQuestionId || !activeAnswerId) return <div>Question not found.</div>;
                 return <PostEditor 
                             mode="follow-up-question"
                             question={activeQuestion}
-                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion })}
+                            questionId={activeQuestionId}
+                            answerId={activeAnswerId}
+                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion, from })}
                         />;
             default:
                 return <div>Select a view</div>;

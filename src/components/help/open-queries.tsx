@@ -1,37 +1,40 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
-
-const fakeQueries = [
-    { id: "q1", question: "How to set up Firebase Authentication in a Next.js app?", relevance: "high" },
-    { id: "q2", question: "What are the best practices for state management in React?", relevance: "high" },
-    { id: "q3", followUp: "Follow-up: How does that compare to using Redux?", parentId: "q2", relevance: "medium" },
-    { id: "q4", question: "How to deploy a Next.js app to Vercel?", relevance: "low" },
-];
+import { useInformation, Question } from "@/context/information-context";
 
 interface OpenQueriesProps {
     onQuestionSelect: (id: string, question: string) => void;
 }
 
 export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
-    
-    const getQuestionText = (query: any) => {
-        if(query.followUp) {
-            return query.followUp;
-        }
-        return query.question;
-    }
-    
+    const { questions } = useInformation();
+
+    // Create a flat list of all questions and follow-ups
+    const allQueries: (Question & { displayText: string })[] = [];
+    questions.forEach(q => {
+        allQueries.push({ ...q, displayText: q.question });
+        q.answers.forEach(a => {
+            a.followUps.forEach(fu => {
+                allQueries.push({ ...fu, displayText: `Follow-up: ${fu.question}` });
+            });
+        });
+    });
+
+    const relevanceOrder = { high: 0, medium: 1, low: 2 };
+    const sortedQueries = allQueries.sort((a, b) => relevanceOrder[a.relevance] - relevanceOrder[b.relevance]);
+
     return (
         <div className="space-y-2">
-            {fakeQueries.map(query => (
+            {sortedQueries.map(query => (
                 <Button 
                     key={query.id} 
                     variant="outline" 
                     className="w-full justify-start h-auto text-left whitespace-normal"
-                    onClick={() => onQuestionSelect(query.parentId || query.id, getQuestionText(query))}
+                    onClick={() => onQuestionSelect(query.parentId || query.id, query.question)}
                 >
-                    {getQuestionText(query)}
+                    {query.displayText}
                 </Button>
             ))}
         </div>
