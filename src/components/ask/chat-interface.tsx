@@ -1,0 +1,179 @@
+"use client";
+
+import { useState, useRef, useEffect, useId } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Send,
+  Upload,
+  Mic,
+  Image as ImageIcon,
+  FileText,
+  UserX,
+  Camera,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+interface Message {
+  id: string;
+  text: string;
+  sender: "user" | "ai";
+}
+
+interface ChatInterfaceProps {
+  onShowSources?: () => void;
+  onPost?: () => void;
+  isPostView?: boolean;
+}
+
+const initialMessages: Message[] = [
+    { id: 'ai-1', text: "Hello! How can I help you today?", sender: 'ai' },
+];
+
+export function ChatInterface({ onShowSources, onPost, isPostView = false }: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>(isPostView ? [] : initialMessages);
+  const [input, setInput] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
+  const formId = useId();
+
+  const handleSend = () => {
+    if (input.trim()) {
+        const userMessage: Message = { id: `user-${Date.now()}`, text: input, sender: 'user' };
+        setMessages(prev => [...prev, userMessage]);
+        setInput("");
+        
+        // Simulate AI response
+        setTimeout(() => {
+            const aiResponse: Message = { id: `ai-${Date.now()}`, text: `This is a simulated AI response to: "${userMessage.text}". I don't have enough information yet.`, sender: 'ai' };
+            setMessages(prev => [...prev, aiResponse]);
+        }, 1000);
+    }
+  };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const maxHeight = isMobile ? 84 : 120; // 3 lines on mobile, 5 on web approx
+      textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+    }
+  }, [input, isMobile]);
+
+  const atBottom = messages.length > 2;
+
+  return (
+    <div className={cn("flex h-full flex-col", { "justify-center": !atBottom && !isPostView })}>
+      <ScrollArea className="flex-1 pr-4">
+        <div className="space-y-6">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "flex items-start gap-3",
+                message.sender === "user" ? "justify-end" : "justify-start"
+              )}
+            >
+              {message.sender === "ai" && (
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>AI</AvatarFallback>
+                </Avatar>
+              )}
+              <div
+                className={cn(
+                  "max-w-[75%] rounded-lg p-3",
+                  message.sender === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
+                )}
+              >
+                <p className="text-sm">{message.text}</p>
+                {message.sender === 'ai' && !isPostView && (
+                    <div className="mt-4 flex gap-2">
+                        {message.text.includes("enough information") ? (
+                            <Button variant="secondary" size="sm" onClick={onPost}>Post</Button>
+                        ) : (
+                            <>
+                                <Button variant="secondary" size="sm" onClick={onShowSources}>Sources</Button>
+                                <Button variant="secondary" size="sm" onClick={onPost}>Post</Button>
+                            </>
+                        )}
+                    </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className={cn("mt-4 flex-shrink-0", { "sticky bottom-0 bg-background py-4": atBottom || isPostView })}>
+        <div className="space-y-2">
+            <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label="Upload">
+                            <Upload />
+                            <span className="hidden md:ml-2 md:inline">Upload</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        {isMobile && <DropdownMenuItem><Camera className="mr-2 h-4 w-4" /> Camera</DropdownMenuItem>}
+                        <DropdownMenuItem><ImageIcon className="mr-2 h-4 w-4" /> Image</DropdownMenuItem>
+                        <DropdownMenuItem><FileText className="mr-2 h-4 w-4" /> File</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                
+                {isPostView && (
+                    <Button variant="ghost" size="icon" aria-label="Anonymous">
+                        <UserX />
+                        <span className="hidden md:ml-2 md:inline">Anonymous</span>
+                    </Button>
+                )}
+
+                <Button variant="ghost" size="icon" aria-label="Voice Input">
+                    <Mic />
+                    <span className="hidden md:ml-2 md:inline">Voice</span>
+                </Button>
+            </div>
+            <form
+                id={formId}
+                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                className="relative"
+            >
+                <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                    }
+                }}
+                placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
+                className="min-h-[48px] resize-none pr-12"
+                rows={1}
+                />
+                <Button
+                    type="submit"
+                    size="icon"
+                    className="absolute bottom-2 right-2"
+                    disabled={!input.trim()}
+                >
+                    <Send className="h-4 w-4" />
+                </Button>
+            </form>
+        </div>
+      </div>
+    </div>
+  );
+}
