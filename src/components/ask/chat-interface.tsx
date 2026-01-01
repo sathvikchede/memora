@@ -137,10 +137,10 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               )}
               <div
                 className={cn(
-                  "max-w-[75%] rounded-lg p-3",
+                  "max-w-[75%] rounded-lg p-3 border",
                   message.sender === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
+                    ? "bg-black text-white border-white"
+                    : "bg-black text-white border-white"
                 )}
               >
                 <p className="text-sm">{message.text}</p>
