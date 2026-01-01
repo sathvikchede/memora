@@ -118,8 +118,8 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               )}
             >
               {message.sender === "ai" && (
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+                <Avatar className="h-8 w-8 bg-white border-2 border-white rounded-full">
+                  <AvatarFallback className="bg-transparent text-primary-foreground">
                   </AvatarFallback>
                 </Avatar>
               )}
@@ -149,8 +149,8 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
           ))}
            {isThinking && (
              <div className="flex items-start gap-3 justify-start">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+                <Avatar className="h-8 w-8 bg-white border-2 border-white rounded-full">
+                  <AvatarFallback className="bg-transparent text-primary-foreground">
                   </AvatarFallback>
                 </Avatar>
                 <div className="bg-muted rounded-lg p-3">
