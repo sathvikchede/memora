@@ -72,9 +72,10 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
                 asChild
                 isActive={activeTab === item.href}
                 tooltip={{ children: item.tooltip, side: "right" }}
+                className="font-semibold"
               >
                 <Link href={item.href}>
-                  <item.icon />
+                  <item.icon className="stroke-[2.5px]" />
                   <span>{item.label}</span>
                 </Link>
               </SidebarMenuButton>
@@ -90,9 +91,10 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
                 asChild
                 isActive={activeTab === item.href}
                 tooltip={{ children: item.tooltip, side: "right" }}
+                className="font-semibold"
               >
                 <Link href={item.href}>
-                  <item.icon />
+                  <item.icon className="stroke-[2.5px]" />
                   <span>{item.label}</span>
                 </Link>
               </SidebarMenuButton>
