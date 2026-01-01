@@ -142,8 +142,8 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                 className={cn(
                   "max-w-[75%] rounded-lg p-3 border",
                   message.sender === "user"
-                    ? "bg-black text-white border-white/50"
-                    : "bg-black text-white border-white/50"
+                    ? "bg-black text-white border-white"
+                    : "bg-black text-white border-white"
                 )}
               >
                 <p className="text-sm">{message.text}</p>
@@ -167,19 +167,6 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
 
       <div className={cn("mt-4 flex-shrink-0", { "sticky bottom-0 bg-background py-4": atBottom || isPostView })}>
         
-        {lastAiMessage?.showActions && !isPostView && (
-            <div className="mb-2 flex h-12 items-center justify-evenly gap-2 rounded-md border border-input p-1">
-                {lastAiMessage.text.includes("enough information") ? (
-                    <Button variant="ghost" className="flex-1 border-0" onClick={onPost}>Post</Button>
-                ) : (
-                    <>
-                        <Button variant="ghost" className="flex-1 border-0" onClick={onShowSources}>Sources</Button>
-                        <Button variant="ghost" className="flex-1 border-0" onClick={onPost}>Post</Button>
-                    </>
-                )}
-            </div>
-        )}
-
         <div className="space-y-2">
             <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border border-input p-1">
                 <DropdownMenu>
@@ -208,39 +195,55 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                     <span className="hidden md:ml-2 md:inline">Voice</span>
                 </Button>
             </div>
-            <form
-                id={formId}
-                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                className="relative"
-            >
-                <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                    }
-                }}
-                placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
-                className="min-h-[48px] resize-none pr-12 rounded-full border-input"
-                rows={1}
-                disabled={isThinking}
-                />
-                <Button
-                    type="submit"
-                    size="icon"
-                    className="absolute bottom-2 right-2 rounded-full"
-                    disabled={!input.trim() || isThinking}
-                >
-                    {isThinking ? (
-                        <div className="h-4 w-4 border-2 border-background/80 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                        <Send className="h-4 w-4" />
-                    )}
-                </Button>
-            </form>
+            <div className="relative rounded-full border border-input">
+              {lastAiMessage?.showActions && !isPostView && (
+                  <div className="flex h-12 items-center justify-evenly gap-2 rounded-t-full border-b border-input p-1">
+                      {lastAiMessage.text.includes("enough information") ? (
+                          <Button variant="ghost" className="flex-1 rounded-full border-0" onClick={onPost}>Post</Button>
+                      ) : (
+                          <>
+                              <Button variant="ghost" className="flex-1 rounded-full border-0" onClick={onShowSources}>Sources</Button>
+                              <Button variant="ghost" className="flex-1 rounded-full border-0" onClick={onPost}>Post</Button>
+                          </>
+                      )}
+                  </div>
+              )}
+              <form
+                  id={formId}
+                  onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                  className="relative"
+              >
+                  <Textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend();
+                      }
+                  }}
+                  placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
+                  className={cn("min-h-[48px] resize-none pr-12 rounded-full border-0 focus-visible:ring-0", {
+                    "rounded-t-none": lastAiMessage?.showActions && !isPostView
+                  })}
+                  rows={1}
+                  disabled={isThinking}
+                  />
+                  <Button
+                      type="submit"
+                      size="icon"
+                      className="absolute bottom-2 right-2 rounded-full"
+                      disabled={!input.trim() || isThinking}
+                  >
+                      {isThinking ? (
+                          <div className="h-4 w-4 border-2 border-background/80 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                          <Send className="h-4 w-4" />
+                      )}
+                  </Button>
+              </form>
+            </div>
         </div>
       </div>
     </div>
