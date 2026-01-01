@@ -60,8 +60,6 @@ interface InformationContextType {
 
 const InformationContext = createContext<InformationContextType | undefined>(undefined);
 
-const defaultQuestions: Question[] = [];
-
 export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<Entry[]>(() => {
         if (typeof window !== 'undefined') {
@@ -74,9 +72,9 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
      const [questions, setQuestions] = useState<Question[]>(() => {
         if (typeof window !== 'undefined') {
             const savedQuestions = localStorage.getItem('memora-questions');
-            return savedQuestions ? JSON.parse(savedQuestions) : defaultQuestions;
+            return savedQuestions ? JSON.parse(savedQuestions) : [];
         }
-        return defaultQuestions;
+        return [];
     });
 
     const [currentUser, setCurrentUserInternal] = useState<Author>(() => {
