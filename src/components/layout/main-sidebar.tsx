@@ -1,3 +1,4 @@
+
 "use client";
 import Link from "next/link";
 import {
@@ -20,20 +21,37 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 
 const MIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-6 w-6 shrink-0"
-  >
-    <path
-      d="M6 18V6H9.468L12 10.692L14.532 6H18V18H15V9.936L12.432 14.4H11.568L9 9.936V18H6Z"
-      fill="currentColor"
-    />
-  </svg>
-);
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-6 w-6 shrink-0"
+    >
+      <path
+        d="M9 16V8H7V16H9Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M9 10C9 8.89543 9.89543 8 11 8C12.1046 8 13 8.89543 13 10V16H11V10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M13 10C13 8.89543 13.8954 8 15 8C16.1046 8 17 8.89543 17 10V16H15V10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="18" cy="16" r="1" fill="currentColor" />
+    </svg>
+  );
 
 const menuItems = [
   { href: "/ask", icon: HelpCircle, label: "Ask.", tooltip: "Ask" },
@@ -105,3 +123,5 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
     </>
   );
 }
+
+    

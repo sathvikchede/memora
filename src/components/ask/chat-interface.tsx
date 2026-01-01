@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useId } from "react";
@@ -38,31 +39,37 @@ interface ChatInterfaceProps {
 }
 
 const MIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-full w-full"
-  >
-    <path
-      d="M6 18V6H9.468L12 10.692L14.532 6H18V18"
-      stroke="white"
-      strokeWidth="2"
-    />
-    <path
-      d="M18 18V6"
-      stroke="white"
-      strokeWidth="2"
-    />
-     <path
-      d="M18 18H15"
-      stroke="white"
-      strokeWidth="2"
-    />
-  </svg>
-);
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-full w-full"
+    >
+      <path
+        d="M9 16V8H7V16H9Z"
+        fill="white"
+        stroke="white"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M9 10C9 8.89543 9.89543 8 11 8C12.1046 8 13 8.89543 13 10V16H11V10"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M13 10C13 8.89543 13.8954 8 15 8C16.1046 8 17 8.89543 17 10V16H15V10"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="18" cy="16" r="1" fill="white" />
+    </svg>
+  );
 
 const initialMessages: Message[] = [
     { id: 'ai-1', text: "Hello! How can I help you today?", sender: 'ai' },
@@ -254,3 +261,5 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
     </div>
   );
 }
+
+    
