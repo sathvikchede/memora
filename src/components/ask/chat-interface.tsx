@@ -118,7 +118,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               )}
             >
               {message.sender === "ai" && (
-                <Avatar className="h-8 w-8 bg-white border-2 border-white rounded-full">
+                <Avatar className="h-8 w-8 bg-white border-2 border-white rounded-full self-start">
                   <AvatarFallback className="bg-transparent text-primary-foreground">
                   </AvatarFallback>
                 </Avatar>
@@ -193,7 +193,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
             <form
                 id={formId}
                 onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                className="relative"
+                className="relative flex items-center"
             >
                 <Textarea
                 ref={textareaRef}
@@ -206,14 +206,14 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                     }
                 }}
                 placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
-                className="min-h-[48px] resize-none pr-12 rounded-full"
+                className="min-h-[48px] resize-none pr-12 rounded-full py-3.5"
                 rows={1}
                 disabled={isThinking}
                 />
                 <Button
                     type="submit"
                     size="icon"
-                    className="absolute bottom-2 right-2 rounded-full"
+                    className="absolute right-2 rounded-full"
                     disabled={!input.trim() || isThinking}
                 >
                     {isThinking ? (
@@ -228,3 +228,5 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
     </div>
   );
 }
+
+    
