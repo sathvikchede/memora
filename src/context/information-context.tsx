@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 export interface Entry {
     id: string;
@@ -19,7 +19,17 @@ interface InformationContextType {
 const InformationContext = createContext<InformationContextType | undefined>(undefined);
 
 export const InformationProvider = ({ children }: { children: ReactNode }) => {
-    const [entries, setEntries] = useState<Entry[]>([]);
+    const [entries, setEntries] = useState<Entry[]>(() => {
+        if (typeof window !== 'undefined') {
+            const savedEntries = localStorage.getItem('memora-entries');
+            return savedEntries ? JSON.parse(savedEntries) : [];
+        }
+        return [];
+    });
+
+    useEffect(() => {
+        localStorage.setItem('memora-entries', JSON.stringify(entries));
+    }, [entries]);
 
     const addEntry = (entry: Entry) => {
         setEntries(prevEntries => [...prevEntries, entry]);
