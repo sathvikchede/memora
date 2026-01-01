@@ -128,7 +128,7 @@ export function AddClient() {
                     <form
                         id={formId}
                         onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                        className="relative"
+                        className="relative flex items-center"
                     >
                         <Textarea
                             ref={textareaRef}
@@ -141,13 +141,13 @@ export function AddClient() {
                                 }
                             }}
                             placeholder="Add information to Memora..."
-                            className="min-h-[48px] resize-none pr-12 rounded-full"
+                            className="min-h-[48px] resize-none pr-12 rounded-full py-3.5"
                             rows={1}
                         />
                         <Button
                             type="submit"
                             size="icon"
-                            className="absolute bottom-2 right-2 rounded-full"
+                            className="absolute right-2 rounded-full"
                             disabled={!input.trim()}
                         >
                             <Send className="h-4 w-4" />
