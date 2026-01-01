@@ -3,6 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useInformation, Question } from "@/context/information-context";
+import { useState, useEffect } from "react";
 
 interface YourResponsesProps {
     onQuestionSelect: (id: string, question: string) => void;
@@ -10,6 +11,16 @@ interface YourResponsesProps {
 
 export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
     const { questions } = useInformation();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    if (!isClient) {
+        return null;
+    }
+    
     const currentUser = "Current User"; 
     
     const yourResponses: {id: string, question: string, parentId?: string}[] = [];

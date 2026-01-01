@@ -3,6 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useInformation, Question } from "@/context/information-context";
+import { useEffect, useState } from "react";
 
 interface OpenQueriesProps {
     onQuestionSelect: (id: string, question: string) => void;
@@ -10,6 +11,17 @@ interface OpenQueriesProps {
 
 export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
     const { questions } = useInformation();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+
+    if (!isClient) {
+        // You can return a loader or null here to prevent hydration mismatch
+        return null;
+    }
 
     // Create a flat list of all questions and follow-ups
     const allQueries: (Question & { displayText: string })[] = [];

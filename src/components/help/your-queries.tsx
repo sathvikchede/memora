@@ -3,6 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useInformation } from "@/context/information-context";
+import { useState, useEffect } from "react";
 
 interface YourQueriesProps {
     onQuestionSelect: (id: string, question: string) => void;
@@ -10,6 +11,16 @@ interface YourQueriesProps {
 
 export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
     const { questions } = useInformation();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    if (!isClient) {
+        return null; // or a loading skeleton
+    }
+    
     // This is a mock user check. In a real app, you'd get the current user's ID.
     const currentUser = "Current User"; 
     const yourQueries = questions.filter(q => q.author.name === currentUser);
