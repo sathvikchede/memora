@@ -60,55 +60,7 @@ interface InformationContextType {
 
 const InformationContext = createContext<InformationContextType | undefined>(undefined);
 
-const defaultQuestions: Question[] = [
-    {
-        id: "q1",
-        question: "How to set up Firebase Authentication in a Next.js app?",
-        relevance: "high",
-        author: { id: "user-2", name: "John Doe", department: "Computer Science", avatar: "/avatars/john.png" },
-        answers: [
-            {
-                id: "a1",
-                text: "You can use the official 'firebase' package. First, you need to create a Firebase project and get your configuration keys. Then, initialize Firebase in a client-side component. After that, you can use the auth functions like `signInWithPopup` or `onAuthStateChanged` to manage user sessions. It's quite straightforward once you get the config set up properly.",
-                author: { id: "user-3", name: "Jane Smith", department: "Software Engineering", avatar: "/avatars/jane.png" },
-                upvotes: 12,
-                downvotes: 1,
-                followUps: [
-                     {
-                        id: "f1",
-                        question: "Thanks! How do you handle protecting routes for authenticated users?",
-                        isFollowUp: true,
-                        parentId: "q1",
-                        author: { id: "user-2", name: "John Doe", department: "Computer Science", avatar: "/avatars/john.png" },
-                        relevance: 'medium',
-                        answers: [{
-                            id: "fa1",
-                            text: "You can use a higher-order component (HOC) or a React Hook that checks the user's authentication state. If the user is not logged in, you can redirect them to the login page. This prevents unauthorized access to sensitive parts of your application.",
-                            author: { id: "user-3", name: "Jane Smith", department: "Software Engineering", avatar: "/avatars/jane.png" },
-                            upvotes: 8,
-                            downvotes: 0,
-                            followUps: []
-                        }]
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        id: "q2",
-        question: "What are the best practices for state management in React?",
-        relevance: "high",
-        author: { id: "user-1", name: "Current User", department: "Your Department", avatar: "/avatars/user.png" },
-        answers: []
-    },
-    {
-        id: "q4",
-        question: "How to deploy a Next.js app to Vercel?",
-        relevance: "low",
-        author: { id: "user-3", name: "Emily White", department: "DevOps", avatar: "/avatars/emily.png" },
-        answers: []
-    },
-];
+const defaultQuestions: Question[] = [];
 
 export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<Entry[]>(() => {
