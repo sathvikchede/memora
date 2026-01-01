@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -24,63 +25,57 @@ export function AskClient() {
   const { entries } = useInformation();
 
   const renderNav = () => {
+    let title = "";
+    let showBackButton = false;
+    let backAction = () => {};
+
     switch (view) {
-      case "history":
-        return (
-          <>
-            <Button variant="ghost" className="w-1/2 justify-start md:w-auto" onClick={() => setView("new-chat")}>
-                <ChevronLeft className="md:mr-2" />
-                <span className="hidden md:inline">Back</span>
-            </Button>
-            <span className="flex-1 text-center font-medium">History</span>
-            <div className="w-1/2 md:w-auto"></div>
-          </>
-        );
-      case "chat-detail":
-        return (
-            <>
-                <Button variant="ghost" className="w-1/2 justify-start md:w-auto" onClick={() => { setView("history"); setActiveChat(null); }}>
-                    <ChevronLeft className="md:mr-2" />
-                    <span className="hidden md:inline">History</span>
-                </Button>
-                <span className="flex-1 truncate px-2 text-center font-medium">{activeChat?.title}</span>
-                <div className="w-1/2 md:w-auto"></div>
-            </>
-        );
-      case "sources":
-        return (
-            <>
-                <Button variant="ghost" className="w-1/2 justify-start md:w-auto" onClick={() => setView("chat-detail")}>
-                    <ChevronLeft className="md:mr-2" />
-                    <span className="hidden md:inline">Back</span>
-                </Button>
-                <span className="flex-1 text-center font-medium">Sources</span>
-                <div className="w-1/2 md:w-auto"></div>
-            </>
-        );
-      case "post":
+        case "history":
+            title = "History";
+            showBackButton = true;
+            backAction = () => setView("new-chat");
+            break;
+        case "chat-detail":
+            title = activeChat?.title || "";
+            showBackButton = true;
+            backAction = () => { setView("history"); setActiveChat(null); };
+            break;
+        case "sources":
+            title = "Sources";
+            showBackButton = true;
+            backAction = () => setView("chat-detail");
+            break;
+        case "post":
+            title = "Post Question";
+            showBackButton = true;
+            backAction = () => setView("chat-detail");
+            break;
+    }
+    
+    if (!showBackButton) {
         return (
             <>
-                <Button variant="ghost" className="w-1/2 justify-start md:w-auto" onClick={() => setView("chat-detail")}>
-                    <ChevronLeft className="md:mr-2" />
-                    <span className="hidden md:inline">Back</span>
-                </Button>
-                <span className="flex-1 text-center font-medium">Post Question</span>
-                <div className="w-1/2 md:w-auto"></div>
+              <Button variant="ghost" className="w-1/2" onClick={() => setView("new-chat")}>
+                <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
+              </Button>
+              <Button variant="ghost" className="w-1/2" onClick={() => setView("history")}>
+                <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
+              </Button>
             </>
-        )
-      default:
-        return (
-          <>
-            <Button variant="ghost" className="w-1/2" onClick={() => setView("new-chat")}>
-              <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
-            </Button>
-            <Button variant="ghost" className="w-1/2" onClick={() => setView("history")}>
-              <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
-            </Button>
-          </>
         );
     }
+
+    return (
+        <div className="relative flex w-full items-center">
+          <Button variant="ghost" className="w-auto" onClick={backAction}>
+            <ChevronLeft className="md:mr-2" />
+            <span className="hidden md:inline">Back</span>
+          </Button>
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <span className="truncate px-2 text-center font-semibold">{title}</span>
+          </div>
+        </div>
+    );
   };
 
   const renderContent = () => {
