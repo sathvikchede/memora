@@ -30,6 +30,7 @@ interface Message {
   id: string;
   text: string;
   sender: "user" | "ai";
+  showActions?: boolean;
 }
 
 interface ChatInterfaceProps {
@@ -66,6 +67,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
 
   const handleSend = async () => {
     if (input.trim()) {
+        setMessages(prev => prev.map(m => ({ ...m, showActions: false })));
         const userMessage: Message = { id: `user-${Date.now()}`, text: input, sender: 'user' };
         setMessages(prev => [...prev, userMessage]);
         setInput("");
@@ -74,7 +76,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
         if (entries.length === 0) {
             // Simulate AI response
             setTimeout(() => {
-                const aiResponse: Message = { id: `ai-${Date.now()}`, text: `This is a simulated AI response to: "${userMessage.text}". I don't have enough information yet.`, sender: 'ai' };
+                const aiResponse: Message = { id: `ai-${Date.now()}`, text: `This is a simulated AI response to: "${userMessage.text}". I don't have enough information yet.`, sender: 'ai', showActions: true };
                 setMessages(prev => [...prev, aiResponse]);
                 setIsThinking(false);
             }, 1000);
@@ -92,11 +94,11 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
 
             try {
                 const result = await answerUserQuery(queryInput);
-                const aiResponse: Message = { id: `ai-${Date.now()}`, text: result.answer, sender: 'ai' };
+                const aiResponse: Message = { id: `ai-${Date.now()}`, text: result.answer, sender: 'ai', showActions: true };
                 setMessages(prev => [...prev, aiResponse]);
             } catch (error) {
                 console.error("Error calling AI flow:", error);
-                const errorResponse: Message = { id: `ai-${Date.now()}`, text: "Sorry, I encountered an error while processing your request.", sender: 'ai' };
+                const errorResponse: Message = { id: `ai-${Date.now()}`, text: "Sorry, I encountered an error while processing your request.", sender: 'ai', showActions: false };
                 setMessages(prev => [...prev, errorResponse]);
             } finally {
                 setIsThinking(false);
@@ -115,6 +117,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
   }, [input, isMobile]);
 
   const atBottom = messages.length > 2;
+  const lastAiMessage = messages.slice().reverse().find(m => m.sender === 'ai');
 
   return (
     <div className={cn("flex h-full flex-col", { "justify-center": !atBottom && !isPostView })}>
@@ -138,22 +141,12 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               <div
                 className={cn(
                   "max-w-[75%] rounded-lg p-3 border",
-                  "bg-black text-white border-white/50"
+                  message.sender === "user"
+                    ? "bg-black text-white border-white/50"
+                    : "bg-black text-white border-white/50"
                 )}
               >
                 <p className="text-sm">{message.text}</p>
-                {message.sender === 'ai' && !isPostView && (
-                    <div className="mt-4 flex gap-2">
-                        {message.text.includes("enough information") ? (
-                            <Button variant="outline" size="sm" className="bg-black border-white/50" onClick={onPost}>Post</Button>
-                        ) : (
-                            <>
-                                <Button variant="outline" size="sm" className="bg-black border-white/50" onClick={onShowSources}>Sources</Button>
-                                <Button variant="outline" size="sm" className="bg-black border-white/50" onClick={onPost}>Post</Button>
-                            </>
-                        )}
-                    </div>
-                )}
               </div>
             </div>
           ))}
@@ -173,8 +166,22 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
       </ScrollArea>
 
       <div className={cn("mt-4 flex-shrink-0", { "sticky bottom-0 bg-background py-4": atBottom || isPostView })}>
+        
+        {lastAiMessage?.showActions && !isPostView && (
+            <div className="mb-2 flex h-12 items-center justify-evenly gap-2 rounded-md border border-input p-1">
+                {lastAiMessage.text.includes("enough information") ? (
+                    <Button variant="ghost" className="flex-1 border-0" onClick={onPost}>Post</Button>
+                ) : (
+                    <>
+                        <Button variant="ghost" className="flex-1 border-0" onClick={onShowSources}>Sources</Button>
+                        <Button variant="ghost" className="flex-1 border-0" onClick={onPost}>Post</Button>
+                    </>
+                )}
+            </div>
+        )}
+
         <div className="space-y-2">
-            <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
+            <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border border-input p-1">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="flex-1" aria-label="Upload" disabled={isThinking}>
@@ -217,7 +224,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                     }
                 }}
                 placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
-                className="min-h-[48px] resize-none pr-12 rounded-full"
+                className="min-h-[48px] resize-none pr-12 rounded-full border-input"
                 rows={1}
                 disabled={isThinking}
                 />
