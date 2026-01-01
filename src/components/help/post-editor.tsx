@@ -19,13 +19,68 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
     const [content, setContent] = useState(mode === 'post-question' ? question : "");
     const [isAnonymous, setIsAnonymous] = useState(false);
     const editorRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const imageInputRef = useRef<HTMLInputElement>(null);
     const { addQuestion, addAnswer, addFollowUp } = useInformation();
 
-    const handleFormat = (format: string) => {
-        if (editorRef.current) {
-            editorRef.current.focus();
+    const applyStyle = (style: 'bold' | 'italic' | 'underline' | 'h1' | 'h2' | 'h3') => {
+        const textarea = editorRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = content.substring(start, end);
+
+        let prefix = '';
+        let suffix = '';
+
+        switch (style) {
+            case 'bold':
+                prefix = '**';
+                suffix = '**';
+                break;
+            case 'italic':
+                prefix = '_';
+                suffix = '_';
+                break;
+            case 'underline':
+                prefix = '<u>';
+                suffix = '</u>';
+                break;
+            case 'h1':
+                prefix = '# ';
+                break;
+            case 'h2':
+                prefix = '## ';
+                break;
+            case 'h3':
+                prefix = '### ';
+                break;
         }
-        console.log(`Applying format: ${format}`);
+
+        const newText = `${content.substring(0, start)}${prefix}${selectedText || style}${suffix}${content.substring(end)}`;
+        setContent(newText);
+
+        textarea.focus();
+        setTimeout(() => {
+            textarea.selectionStart = start + prefix.length;
+            textarea.selectionEnd = end + prefix.length;
+        }, 0);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isImage: boolean) => {
+        const file = e.target.files?.[0];
+        if (!file || !editorRef.current) return;
+
+        const textarea = editorRef.current;
+        const start = textarea.selectionStart;
+        
+        const fileMarkdown = isImage ? `![${file.name}](${file.name})` : `[${file.name}](${file.name})`;
+        
+        const newText = `${content.substring(0, start)}${fileMarkdown}${content.substring(start)}`;
+        setContent(newText);
+
+        e.target.value = '';
     };
 
     const getButtonText = () => {
@@ -63,15 +118,18 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
 
     return (
         <div className="flex h-full flex-col">
+            <input type="file" ref={fileInputRef} onChange={(e) => handleFileChange(e, false)} className="hidden" />
+            <input type="file" ref={imageInputRef} accept="image/*" onChange={(e) => handleFileChange(e, true)} className="hidden" />
+            
             <div className="flex flex-wrap items-center gap-2 border-b p-2">
-                <Button variant="ghost" size="sm" onClick={() => handleFormat('h1')}>H1</Button>
-                <Button variant="ghost" size="sm" onClick={() => handleFormat('h2')}>H2</Button>
-                <Button variant="ghost" size="sm" onClick={() => handleFormat('h3')}>H3</Button>
-                <Button variant="ghost" size="icon" onClick={() => handleFormat('bold')}><Bold className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => handleFormat('italic')}><Italic className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => handleFormat('underline')}><Underline className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon"><ImageIcon className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon"><Paperclip className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="sm" onClick={() => applyStyle('h1')}>H1</Button>
+                <Button variant="ghost" size="sm" onClick={() => applyStyle('h2')}>H2</Button>
+                <Button variant="ghost" size="sm" onClick={() => applyStyle('h3')}>H3</Button>
+                <Button variant="ghost" size="icon" onClick={() => applyStyle('bold')}><Bold className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => applyStyle('italic')}><Italic className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => applyStyle('underline')}><Underline className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => imageInputRef.current?.click()}><ImageIcon className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}><Paperclip className="h-4 w-4" /></Button>
                  <Button 
                     variant={isAnonymous ? "secondary" : "ghost"} 
                     size="sm" 
