@@ -11,7 +11,7 @@ interface HeaderProps {
 export function Header({ activeTab }: HeaderProps) {
   return (
     <>
-      <header className="flex h-14 items-center gap-4 px-4 sm:px-6">
+      <header className="relative flex h-14 items-center gap-4 px-4 sm:px-6">
         <SidebarTrigger className="md:hidden" />
         <div className="flex flex-1 items-center justify-center">
           {activeTab && (
@@ -20,7 +20,7 @@ export function Header({ activeTab }: HeaderProps) {
             </span>
           )}
         </div>
-        <div className="ml-auto">
+        <div className="absolute right-4 top-1/2 -translate-y-1/2">
           <Button
             variant="outline"
             className="pointer-events-none rounded-full"

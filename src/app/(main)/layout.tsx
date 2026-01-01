@@ -11,13 +11,13 @@ import { Header } from "@/components/layout/header";
 import { InformationProvider } from "@/context/information-context";
 
 const TABS: { [key: string]: string } = {
-  "/ask": "ask.",
-  "/add": "add.",
-  "/help": "help.",
-  "/chat": "chat.",
-  "/people": "people.",
-  "/space": "space.",
-  "/profile": "profile.",
+  "/ask": "Ask.",
+  "/add": "Add.",
+  "/help": "Help.",
+  "/chat": "Chat.",
+  "/people": "People.",
+  "/space": "Space.",
+  "/profile": "Profile.",
 };
 
 export default function MainLayout({
