@@ -11,8 +11,8 @@ const ThreadItem = ({ children, author, level = 0, hasMoreAfter = false }: { chi
     <div className="relative flex items-start gap-4">
         {level > 0 && (
              <div 
-                className="absolute w-6 h-6 border-b border-l border-border rounded-bl-lg"
-                style={{ left: '-16px', top: '0px' }}
+                className="absolute w-6 h-6 border-b-2 border-l-2 border-border rounded-bl-lg"
+                style={{ left: '-26px', top: '14px' }}
             ></div>
         )}
         
@@ -22,7 +22,7 @@ const ThreadItem = ({ children, author, level = 0, hasMoreAfter = false }: { chi
                 <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
             </Avatar>
              {hasMoreAfter && (
-                <div className="absolute top-10 h-full w-px bg-border"></div>
+                <div className="absolute top-10 h-full w-[2px] bg-border"></div>
             )}
         </div>
         
