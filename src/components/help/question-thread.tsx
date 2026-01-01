@@ -4,32 +4,41 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useInformation, Question as QuestionType, Author as AuthorType, Answer as AnswerType } from "@/context/information-context";
 
-const ThreadItem = ({ children, author, level = 0 }: { children: React.ReactNode, author: AuthorType, level?: number }) => (
-    <div className="relative flex items-start gap-4">
-        <div className="relative z-10 flex flex-col items-center">
-            <Avatar>
-                <AvatarImage src={author.avatar} alt={author.name} />
-                <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-        </div>
-        
-        <div className="w-full">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="font-semibold">{author.name}</p>
-                    <p className="text-sm text-muted-foreground">{author.department}</p>
+const ThreadItem = ({ children, author, level = 0, isLastInLevel = true, hasChildren = false }: { children: React.ReactNode, author: AuthorType, level?: number, isLastInLevel?: boolean, hasChildren?: boolean }) => {
+    return (
+        <div className="relative flex items-start gap-4">
+            {level > 0 && (
+                <>
+                    <div className="absolute left-[18px] top-[40px] h-full w-px bg-border"></div>
+                    <div className="absolute left-[18px] top-[40px] h-10 w-6 rounded-bl-xl border-b-2 border-l-2 border-border"></div>
+                </>
+            )}
+
+            <div className="relative z-10 flex flex-col items-center">
+                <Avatar>
+                    <AvatarImage src={author.avatar} alt={author.name} />
+                    <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+            </div>
+            
+            <div className="w-full">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="font-semibold">{author.name}</p>
+                        <p className="text-sm text-muted-foreground">{author.department}</p>
+                    </div>
+                    <Button variant="outline" size="sm">Chat</Button>
                 </div>
-                <Button variant="outline" size="sm">Chat</Button>
-            </div>
-            <div className="mt-2 rounded-lg border bg-muted p-4">
-                {children}
+                <div className="mt-2 rounded-lg border bg-muted p-4">
+                    {children}
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 interface QuestionThreadProps {
     questionId: string;
@@ -39,6 +48,16 @@ interface QuestionThreadProps {
 
 export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThreadProps) {
     const { questions } = useInformation();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    if (!isClient) {
+        return null;
+    }
+
     const thread = questions.find(q => q.id === questionId); 
 
     if (!thread) {
@@ -50,12 +69,13 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
     const canFollowUp = (level: number) => level < 2;
 
     const renderAnswers = (question: QuestionType, answers: AnswerType[], level: number) => {
-        return answers.map((answer) => {
+        return answers.map((answer, index) => {
             const hasFollowUps = answer.followUps && answer.followUps.length > 0;
+            const isLast = index === answers.length - 1;
             
             return (
                 <div className="space-y-6 pl-8" key={answer.id}>
-                    <ThreadItem author={answer.author} level={level + 1}>
+                    <ThreadItem author={answer.author} level={level + 1} isLastInLevel={isLast} hasChildren={hasFollowUps}>
                         <p className="line-clamp-3">{answer.text}</p>
                         <Button variant="link" className="p-0 h-auto text-blue-500">Read More</Button>
                         <div className="mt-4 flex">
@@ -75,12 +95,13 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
     }
 
     const renderFollowUps = (originalQuestion: QuestionType, followUps: QuestionType[], level: number) => {
-        return followUps.map((followUp) => {
+        return followUps.map((followUp, index) => {
              const hasAnswers = followUp.answers && followUp.answers.length > 0;
+             const isLast = index === followUps.length - 1;
 
             return (
                 <div className="space-y-6 pl-8" key={followUp.id}>
-                    <ThreadItem author={followUp.author} level={level + 1}>
+                    <ThreadItem author={followUp.author} level={level + 1} isLastInLevel={isLast} hasChildren={hasAnswers}>
                         <p>{followUp.question}</p>
                         <div className="flex justify-end mt-4">
                             <Button onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
@@ -92,15 +113,17 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
         });
     }
 
+    const hasAnswers = thread.answers.length > 0;
+
     return (
         <div className="space-y-6">
-           <ThreadItem author={thread.author} level={0}>
+           <ThreadItem author={thread.author} level={0} isLastInLevel={!hasAnswers} hasChildren={hasAnswers}>
                 <p>{thread.question}</p>
                 <div className="flex justify-end mt-4">
                     <Button onClick={() => onAnswer(thread.id, thread.question)}>Answer</Button>
                 </div>
             </ThreadItem>
-            {thread.answers.length > 0 && <div className="mt-6 space-y-6">{renderAnswers(thread, thread.answers, 0)}</div>}
+            {hasAnswers && <div className="mt-6 space-y-6">{renderAnswers(thread, thread.answers, 0)}</div>}
         </div>
     );
 }
