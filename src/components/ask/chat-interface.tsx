@@ -39,31 +39,6 @@ interface ChatInterfaceProps {
   isPostView?: boolean;
 }
 
-const MIcon = () => (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-full w-full"
-    >
-      <path
-        d="M8 15V9H6V15H8Z"
-        fill="currentColor"
-      />
-      <path
-        d="M8 11C8 10.4477 8.44772 10 9 10C9.55228 10 10 10.4477 10 11V15H8V11Z"
-        fill="currentColor"
-      />
-      <path
-        d="M10 11C10 10.4477 10.4477 10 11 10C11.5523 10 12 10.4477 12 11V15H10V11Z"
-        fill="currentColor"
-      />
-      <circle cx="13.5" cy="15" r="1" fill="currentColor" />
-    </svg>
-  );
-
 const initialMessages: Message[] = [
     { id: 'ai-1', text: "Hello! How can I help you today?", sender: 'ai' },
 ];
@@ -145,7 +120,6 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               {message.sender === "ai" && (
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    <MIcon />
                   </AvatarFallback>
                 </Avatar>
               )}
@@ -177,7 +151,6 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
              <div className="flex items-start gap-3 justify-start">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    <MIcon />
                   </AvatarFallback>
                 </Avatar>
                 <div className="bg-muted rounded-lg p-3">
