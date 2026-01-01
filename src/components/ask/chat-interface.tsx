@@ -48,7 +48,19 @@ const MIcon = () => (
       xmlns="http://www.w3.org/2000/svg"
       className="h-full w-full"
     >
-      <circle cx="12" cy="12" r="2" fill="white" />
+      <path
+        d="M8 15V9H6V15H8Z"
+        fill="currentColor"
+      />
+      <path
+        d="M8 11C8 10.4477 8.44772 10 9 10C9.55228 10 10 10.4477 10 11V15H8V11Z"
+        fill="currentColor"
+      />
+      <path
+        d="M10 11C10 10.4477 10.4477 10 11 10C11.5523 10 12 10.4477 12 11V15H10V11Z"
+        fill="currentColor"
+      />
+      <circle cx="13.5" cy="15" r="1" fill="currentColor" />
     </svg>
   );
 
@@ -132,18 +144,18 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
               )}
             >
               {message.sender === "ai" && (
-                <Avatar className="h-8 w-8 border border-white">
-                  <AvatarFallback className="bg-black text-white">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
                     <MIcon />
                   </AvatarFallback>
                 </Avatar>
               )}
               <div
                 className={cn(
-                  "max-w-[75%] rounded-lg p-3 border",
+                  "max-w-[75%] rounded-lg p-3",
                   message.sender === "user"
-                    ? "bg-black text-white border-white"
-                    : "bg-black text-white border-white"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
                 )}
               >
                 <p className="text-sm">{message.text}</p>
@@ -152,8 +164,8 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
           ))}
            {isThinking && (
              <div className="flex items-start gap-3 justify-start">
-                <Avatar className="h-8 w-8 border border-white">
-                  <AvatarFallback className="bg-black text-white">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
                     <MIcon />
                   </AvatarFallback>
                 </Avatar>
@@ -166,9 +178,20 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
       </ScrollArea>
 
       <div className={cn("mt-4 flex-shrink-0", { "sticky bottom-0 bg-background py-4": atBottom || isPostView })}>
-        
+        {lastAiMessage?.showActions && !isPostView && (
+            <div className="mb-2 flex items-center justify-end gap-2">
+                {lastAiMessage.text.includes("enough information") ? (
+                     <Button variant="outline" size="sm" onClick={onPost}>Post</Button>
+                ) : (
+                    <>
+                        <Button variant="outline" size="sm" onClick={onShowSources}>Sources</Button>
+                        <Button variant="outline" size="sm" onClick={onPost}>Post</Button>
+                    </>
+                )}
+            </div>
+        )}
         <div className="space-y-2">
-            <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border border-input p-1">
+            <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="flex-1" aria-label="Upload" disabled={isThinking}>
@@ -195,55 +218,39 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                     <span className="hidden md:ml-2 md:inline">Voice</span>
                 </Button>
             </div>
-            <div className="relative rounded-full border border-input">
-              {lastAiMessage?.showActions && !isPostView && (
-                  <div className="flex h-12 items-center justify-evenly gap-2 rounded-t-full border-b border-input p-1">
-                      {lastAiMessage.text.includes("enough information") ? (
-                          <Button variant="ghost" className="flex-1 rounded-full border-0" onClick={onPost}>Post</Button>
-                      ) : (
-                          <>
-                              <Button variant="ghost" className="flex-1 rounded-full border-0" onClick={onShowSources}>Sources</Button>
-                              <Button variant="ghost" className="flex-1 rounded-full border-0" onClick={onPost}>Post</Button>
-                          </>
-                      )}
-                  </div>
-              )}
-              <form
-                  id={formId}
-                  onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                  className="relative"
-              >
-                  <Textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSend();
-                      }
-                  }}
-                  placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
-                  className={cn("min-h-[48px] resize-none pr-12 rounded-full border-0 focus-visible:ring-0", {
-                    "rounded-t-none": lastAiMessage?.showActions && !isPostView
-                  })}
-                  rows={1}
-                  disabled={isThinking}
-                  />
-                  <Button
-                      type="submit"
-                      size="icon"
-                      className="absolute bottom-2 right-2 rounded-full"
-                      disabled={!input.trim() || isThinking}
-                  >
-                      {isThinking ? (
-                          <div className="h-4 w-4 border-2 border-background/80 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                          <Send className="h-4 w-4" />
-                      )}
-                  </Button>
-              </form>
-            </div>
+            <form
+                id={formId}
+                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                className="relative"
+            >
+                <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                    }
+                }}
+                placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
+                className="min-h-[48px] resize-none pr-12 rounded-full"
+                rows={1}
+                disabled={isThinking}
+                />
+                <Button
+                    type="submit"
+                    size="icon"
+                    className="absolute bottom-2 right-2 rounded-full"
+                    disabled={!input.trim() || isThinking}
+                >
+                    {isThinking ? (
+                        <div className="h-4 w-4 border-2 border-background/80 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                        <Send className="h-4 w-4" />
+                    )}
+                </Button>
+            </form>
         </div>
       </div>
     </div>
