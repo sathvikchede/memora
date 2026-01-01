@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
@@ -44,9 +43,9 @@ interface InformationContextType {
     entries: Entry[];
     addEntry: (entry: Entry) => void;
     questions: Question[];
-    addQuestion: (question: Question) => void;
-    addAnswer: (questionId: string, answer: Omit<Answer, 'followUps' | 'id'>) => void;
-    addFollowUp: (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'>) => void;
+    addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => void;
+    addAnswer: (questionId: string, answer: Omit<Answer, 'followUps' | 'id'>, originalQuestion: string) => void;
+    addFollowUp: (answerId: string, followUp: Omit<Question, 'answers' | 'relevance' | 'id'>, originalQuestion: string) => void;
 }
 
 const InformationContext = createContext<InformationContextType | undefined>(undefined);
@@ -120,18 +119,22 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     });
 
     useEffect(() => {
-        localStorage.setItem('memora-entries', JSON.stringify(entries));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('memora-entries', JSON.stringify(entries));
+        }
     }, [entries]);
 
      useEffect(() => {
-        localStorage.setItem('memora-questions', JSON.stringify(questions));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('memora-questions', JSON.stringify(questions));
+        }
     }, [questions]);
 
     const addEntry = (entry: Entry) => {
         setEntries(prevEntries => [...prevEntries, entry]);
     };
 
-    const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance'> & { question: string }) => {
+    const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => {
         const newQuestion: Question = {
             ...question,
             id: `q-${Date.now()}`,
@@ -139,9 +142,16 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             relevance: 'medium', // Default relevance
         };
         setQuestions(prevQuestions => [newQuestion, ...prevQuestions]);
+        addEntry({
+            id: `entry-${Date.now()}`,
+            text: `Question: ${question.question}`,
+            contributor: question.author.name,
+            date: new Date().toISOString().split('T')[0],
+            type: 'question'
+        });
     };
 
-    const addAnswer = (questionId: string, answer: Omit<Answer, 'followUps'|'id'>) => {
+    const addAnswer = (questionId: string, answer: Omit<Answer, 'followUps'|'id'>, originalQuestion: string) => {
         const newAnswer: Answer = { ...answer, id: `a-${Date.now()}`, followUps: [] };
         
         const findAndAddAnswer = (qs: Question[]): Question[] => {
@@ -161,9 +171,16 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setQuestions(prev => findAndAddAnswer(prev));
+        addEntry({
+            id: `entry-${Date.now()}`,
+            text: `In response to "${originalQuestion}", the answer is: ${answer.text}`,
+            contributor: answer.author.name,
+            date: new Date().toISOString().split('T')[0],
+            type: 'answer'
+        });
     };
 
-     const addFollowUp = (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id'>) => {
+     const addFollowUp = (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id'>, originalQuestion: string) => {
         const newFollowUp: Question = {
             ...followUp,
             id: `f-${Date.now()}`,
@@ -185,6 +202,13 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             });
         };
         setQuestions(prev => findAndAddFollowUp(prev));
+        addEntry({
+            id: `entry-${Date.now()}`,
+            text: `A follow-up to "${originalQuestion}" asks: ${followUp.question}`,
+            contributor: followUp.author.name,
+            date: new Date().toISOString().split('T')[0],
+            type: 'follow-up'
+        });
     };
 
 

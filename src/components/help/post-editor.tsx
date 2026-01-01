@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef } from 'react';
@@ -44,6 +43,7 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 suffix = '_';
                 break;
             case 'underline':
+                // Note: Markdown doesn't have a standard underline. Using HTML tags.
                 prefix = '<u>';
                 suffix = '</u>';
                 break;
@@ -63,8 +63,9 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
 
         textarea.focus();
         setTimeout(() => {
-            textarea.selectionStart = start + prefix.length;
-            textarea.selectionEnd = end + prefix.length;
+            const newCursorPos = start + prefix.length + (selectedText ? selectedText.length : style.length);
+            textarea.selectionStart = newCursorPos;
+            textarea.selectionEnd = newCursorPos;
         }, 0);
     };
 
@@ -75,12 +76,13 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
         const textarea = editorRef.current;
         const start = textarea.selectionStart;
         
-        const fileMarkdown = isImage ? `![${file.name}](${file.name})` : `[${file.name}](${file.name})`;
+        // This is a placeholder. In a real app, you'd upload the file and get a URL.
+        const fileMarkdown = isImage ? `![${file.name}](placeholder_url_for_${file.name})` : `[${file.name}](placeholder_url_for_${file.name})`;
         
-        const newText = `${content.substring(0, start)}${fileMarkdown}${content.substring(start)}`;
+        const newText = `${content.substring(0, start)} ${fileMarkdown} ${content.substring(start)}`;
         setContent(newText);
 
-        e.target.value = '';
+        e.target.value = ''; // Reset file input
     };
 
     const getButtonText = () => {
@@ -92,6 +94,8 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
     }
 
     const handlePost = () => {
+        if (!content.trim()) return;
+
         const author = { 
             name: isAnonymous ? "Anonymous" : "Current User", 
             department: isAnonymous ? "Unknown" : "Your Department", 
@@ -104,12 +108,12 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 break;
             case "answer-question":
                 if(questionId) {
-                    addAnswer(questionId, { text: content, author, upvotes: 0, downvotes: 0 });
+                    addAnswer(questionId, { text: content, author, upvotes: 0, downvotes: 0 }, question);
                 }
                 break;
             case "follow-up-question":
                  if (answerId && questionId) {
-                    addFollowUp(answerId, { question: content, author, parentId: questionId });
+                    addFollowUp(answerId, { question: content, author, parentId: questionId }, question);
                 }
                 break;
         }
