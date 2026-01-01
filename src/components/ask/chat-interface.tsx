@@ -113,7 +113,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
             <div
               key={message.id}
               className={cn(
-                "flex items-start gap-3",
+                "flex items-center gap-3",
                 message.sender === "user" ? "justify-end" : "justify-start"
               )}
             >
