@@ -47,7 +47,7 @@ const MIcon = () => (
       xmlns="http://www.w3.org/2000/svg"
       className="h-full w-full"
     >
-      <circle cx="12" cy="12" r="6" fill="white" />
+      <circle cx="12" cy="12" r="2" fill="white" />
     </svg>
   );
 
@@ -241,6 +241,3 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
     </div>
   );
 }
-
-    
-    
