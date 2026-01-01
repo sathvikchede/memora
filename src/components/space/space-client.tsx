@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "@/components/ui/separator";
 
 export function SpaceClient() {
-    const [spaceName, setSpaceName] = useState("");
-    const [spaceDescription, setSpaceDescription] = useState("");
+    const [spaceName, setSpaceName] = useState("Trail");
+    const [spaceDescription, setSpaceDescription] = useState("This is a test space.");
     const [inviteLink, setInviteLink] = useState("");
 
     const handleCreateSpace = (e: React.FormEvent) => {
@@ -22,8 +22,10 @@ export function SpaceClient() {
     };
 
     const handleCopyLink = () => {
-        navigator.clipboard.writeText(inviteLink);
-        // Add toast notification here if desired
+        if (inviteLink) {
+            navigator.clipboard.writeText(inviteLink);
+            // Add toast notification here if desired
+        }
     };
 
     return (
@@ -68,8 +70,11 @@ export function SpaceClient() {
 
                 <div>
                     <h3 className="text-lg font-medium">Your Spaces</h3>
-                    <div className="mt-4 rounded-md border p-4 text-center text-muted-foreground">
-                        You are not part of any other spaces yet.
+                    <div className="mt-4 divide-y divide-border rounded-md border">
+                        <div className="flex items-center justify-between p-4">
+                            <span className="font-medium">Trail</span>
+                            <Button variant="outline" disabled>Current</Button>
+                        </div>
                     </div>
                 </div>
             </div>
