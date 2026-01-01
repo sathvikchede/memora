@@ -161,7 +161,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
             <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Upload" disabled={isThinking}>
+                        <Button variant="ghost" className="flex-1" aria-label="Upload" disabled={isThinking}>
                             <Upload />
                             <span className="hidden md:ml-2 md:inline">Upload</span>
                         </Button>
@@ -174,13 +174,13 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                 </DropdownMenu>
                 
                 {isPostView && (
-                    <Button variant="ghost" size="icon" aria-label="Anonymous" disabled={isThinking}>
+                    <Button variant="ghost" className="flex-1" aria-label="Anonymous" disabled={isThinking}>
                         <UserX />
                         <span className="hidden md:ml-2 md:inline">Anonymous</span>
                     </Button>
                 )}
 
-                <Button variant="ghost" size="icon" aria-label="Voice Input" disabled={isThinking}>
+                <Button variant="ghost" className="flex-1" aria-label="Voice Input" disabled={isThinking}>
                     <Mic />
                     <span className="hidden md:ml-2 md:inline">Voice</span>
                 </Button>
@@ -201,14 +201,14 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                     }
                 }}
                 placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
-                className="min-h-[48px] resize-none pr-12"
+                className="min-h-[48px] resize-none pr-12 rounded-full"
                 rows={1}
                 disabled={isThinking}
                 />
                 <Button
                     type="submit"
                     size="icon"
-                    className="absolute bottom-2 right-2"
+                    className="absolute bottom-2 right-2 rounded-full"
                     disabled={!input.trim() || isThinking}
                 >
                     {isThinking ? (

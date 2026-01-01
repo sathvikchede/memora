@@ -103,7 +103,7 @@ export function AddClient() {
                     <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" aria-label="Upload">
+                                <Button variant="ghost" className="flex-1" aria-label="Upload">
                                     <Upload />
                                     <span className="hidden md:ml-2 md:inline">Upload</span>
                                 </Button>
@@ -115,12 +115,12 @@ export function AddClient() {
                             </DropdownMenuContent>
                         </DropdownMenu>
                         
-                        <Button variant="ghost" size="icon" aria-label="Anonymous">
+                        <Button variant="ghost" className="flex-1" aria-label="Anonymous">
                             <UserX />
                             <span className="hidden md:ml-2 md:inline">Anonymous</span>
                         </Button>
 
-                        <Button variant="ghost" size="icon" aria-label="Voice Input">
+                        <Button variant="ghost" className="flex-1" aria-label="Voice Input">
                             <Mic />
                             <span className="hidden md:ml-2 md:inline">Voice</span>
                         </Button>
@@ -141,13 +141,13 @@ export function AddClient() {
                                 }
                             }}
                             placeholder="Add information to Memora..."
-                            className="min-h-[48px] resize-none pr-12"
+                            className="min-h-[48px] resize-none pr-12 rounded-full"
                             rows={1}
                         />
                         <Button
                             type="submit"
                             size="icon"
-                            className="absolute bottom-2 right-2"
+                            className="absolute bottom-2 right-2 rounded-full"
                             disabled={!input.trim()}
                         >
                             <Send className="h-4 w-4" />
