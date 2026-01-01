@@ -113,12 +113,12 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
             <div
               key={message.id}
               className={cn(
-                "flex items-center gap-3",
+                "flex items-start gap-3",
                 message.sender === "user" ? "justify-end" : "justify-start"
               )}
             >
               {message.sender === "ai" && (
-                <Avatar className="h-8 w-8 bg-white border-2 border-white rounded-full self-start">
+                <Avatar className="h-8 w-8 bg-white border-2 border-white rounded-full">
                   <AvatarFallback className="bg-transparent text-primary-foreground">
                   </AvatarFallback>
                 </Avatar>
@@ -206,7 +206,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                     }
                 }}
                 placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
-                className="min-h-[48px] resize-none pr-12 rounded-full py-3.5"
+                className="min-h-[48px] resize-none pr-12 rounded-full flex items-center"
                 rows={1}
                 disabled={isThinking}
                 />
