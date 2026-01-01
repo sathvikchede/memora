@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useId } from "react";
@@ -35,22 +34,22 @@ interface Message {
 
 interface ChatInterfaceProps {
   onShowSources?: () => void;
-  onPost?: () => void;
-  isPostView?: boolean;
+  onPost?: (question: string) => void;
 }
 
 const initialMessages: Message[] = [
     { id: 'ai-1', text: "Hello! How can I help you today?", sender: 'ai' },
 ];
 
-export function ChatInterface({ onShowSources, onPost, isPostView = false }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>(isPostView ? [] : initialMessages);
+export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
   const formId = useId();
   const { entries } = useInformation();
   const [isThinking, setIsThinking] = useState(false);
+  const lastUserMessage = messages.filter(m => m.sender === 'user').pop();
 
   const handleSend = async () => {
     if (input.trim()) {
@@ -98,7 +97,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       const scrollHeight = textareaRef.current.scrollHeight;
-      const maxHeight = isMobile ? 84 : 120; // 3 lines on mobile, 5 on web approx
+      const maxHeight = isMobile ? 84 : 120;
       textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }
   }, [input, isMobile]);
@@ -106,7 +105,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
   const atBottom = messages.length > 2;
 
   return (
-    <div className={cn("flex h-full flex-col", { "justify-center": !atBottom && !isPostView })}>
+    <div className={cn("flex h-full flex-col", { "justify-center": !atBottom })}>
       <ScrollArea className="flex-1 pr-4">
         <div className="space-y-6">
           {messages.map((message) => (
@@ -132,14 +131,14 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                 )}
               >
                 <p className="text-sm p-3">{message.text}</p>
-                {message.showActions && !isPostView && (
+                {message.showActions && (
                     <div className="mt-2 flex items-center justify-stretch gap-px border-t">
                         {message.text.includes("enough information") ? (
-                             <Button variant="ghost" size="sm" onClick={onPost} className="flex-1 rounded-t-none rounded-b-lg">Post</Button>
+                             <Button variant="ghost" size="sm" onClick={() => onPost && onPost(lastUserMessage?.text || '')} className="flex-1 rounded-t-none rounded-b-lg">Post</Button>
                         ) : (
                             <>
                                 <Button variant="ghost" size="sm" onClick={onShowSources} className="flex-1 rounded-t-none rounded-bl-lg">Sources</Button>
-                                <Button variant="ghost" size="sm" onClick={onPost} className="flex-1 rounded-t-none rounded-br-lg">Post</Button>
+                                <Button variant="ghost" size="sm" onClick={() => onPost && onPost(lastUserMessage?.text || '')} className="flex-1 rounded-t-none rounded-br-lg">Post</Button>
                             </>
                         )}
                     </div>
@@ -161,7 +160,7 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
         </div>
       </ScrollArea>
 
-      <div className={cn("mt-4 flex-shrink-0", { "sticky bottom-0 bg-background py-4": atBottom || isPostView })}>
+      <div className={cn("mt-4 flex-shrink-0", { "sticky bottom-0 bg-background py-4": atBottom })}>
         <div className="space-y-2">
             <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
                 <DropdownMenu>
@@ -178,13 +177,6 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                     </DropdownMenuContent>
                 </DropdownMenu>
                 
-                {isPostView && (
-                    <Button variant="ghost" className="flex-1" aria-label="Anonymous" disabled={isThinking}>
-                        <UserX />
-                        <span className="hidden md:ml-2 md:inline">Anonymous</span>
-                    </Button>
-                )}
-
                 <Button variant="ghost" className="flex-1" aria-label="Voice Input" disabled={isThinking}>
                     <Mic />
                     <span className="hidden md:ml-2 md:inline">Voice</span>
@@ -196,24 +188,24 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
                 className="relative flex items-center"
             >
                 <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                    }
-                }}
-                placeholder={isPostView ? "Post a question to the community..." : "Ask memora anything..."}
-                className="min-h-[48px] resize-none pr-12 rounded-full flex items-center"
-                rows={1}
-                disabled={isThinking}
+                    ref={textareaRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend();
+                        }
+                    }}
+                    placeholder={"Ask memora anything..."}
+                    className="min-h-[48px] resize-none pr-12 rounded-full flex items-center py-3.5"
+                    rows={1}
+                    disabled={isThinking}
                 />
                 <Button
                     type="submit"
                     size="icon"
-                    className="absolute right-2 rounded-full"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full"
                     disabled={!input.trim() || isThinking}
                 >
                     {isThinking ? (
@@ -228,5 +220,3 @@ export function ChatInterface({ onShowSources, onPost, isPostView = false }: Cha
     </div>
   );
 }
-
-    

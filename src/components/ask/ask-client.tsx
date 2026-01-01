@@ -1,15 +1,15 @@
-
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { History, PlusCircle, ChevronLeft } from "lucide-react";
+import { History, PlusCircle, ChevronLeft, Edit } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
 import { useInformation } from "@/context/information-context";
+import { useRouter } from "next/navigation";
 
 
-type View = "new-chat" | "history" | "chat-detail" | "sources" | "post";
+type View = "new-chat" | "history" | "chat-detail" | "sources";
 type HistoryItem = { id: string; title: string; date: string };
 
 const fakeHistory: HistoryItem[] = [
@@ -23,6 +23,11 @@ export function AskClient() {
   const [view, setView] = useState<View>("new-chat");
   const [activeChat, setActiveChat] = useState<HistoryItem | null>(null);
   const { entries } = useInformation();
+  const router = useRouter();
+
+  const handlePost = (question: string) => {
+    router.push(`/help?view=post-question&question=${encodeURIComponent(question)}`);
+  };
 
   const renderNav = () => {
     let title = "";
@@ -45,11 +50,6 @@ export function AskClient() {
             showBackButton = true;
             backAction = () => setView("chat-detail");
             break;
-        case "post":
-            title = "Post Question";
-            showBackButton = true;
-            backAction = () => setView("chat-detail");
-            break;
     }
     
     if (!showBackButton) {
@@ -66,14 +66,14 @@ export function AskClient() {
     }
 
     return (
-        <div className="relative flex w-full items-center">
-          <Button variant="ghost" className="w-auto" onClick={backAction}>
-            <ChevronLeft className="md:mr-2" />
-            <span className="hidden md:inline">Back</span>
-          </Button>
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <span className="truncate px-2 text-center font-semibold">{title}</span>
+      <div className="relative flex w-full items-center justify-center">
+          <div className="absolute left-0">
+            <Button variant="ghost" className="w-auto" onClick={backAction}>
+                <ChevronLeft className="md:mr-2" />
+                <span className="hidden md:inline">Back</span>
+            </Button>
           </div>
+          <span className="truncate px-2 text-center font-bold text-lg">{title}</span>
         </div>
     );
   };
@@ -92,7 +92,7 @@ export function AskClient() {
                 </div>
             );
         case "chat-detail":
-            return <ChatInterface key={activeChat?.id} onShowSources={() => setView('sources')} onPost={() => setView('post')} />;
+            return <ChatInterface key={activeChat?.id} onShowSources={() => setView('sources')} onPost={handlePost} />;
         case "sources":
             return (
                 <div className="divide-y divide-border p-4">
@@ -112,10 +112,8 @@ export function AskClient() {
                     ))}
                 </div>
             );
-        case "post":
-            return <ChatInterface isPostView={true} />;
         default:
-            return <ChatInterface key="new-chat" onShowSources={() => setView('sources')} onPost={() => setView('post')} />;
+            return <ChatInterface key="new-chat" onShowSources={() => setView('sources')} onPost={handlePost} />;
     }
   };
 
