@@ -1,7 +1,7 @@
 'use client';
 
 import { useInformation, Author } from '@/context/information-context';
-import { useSearchParams, useRouter }d from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ChatThread } from './chat-thread';
