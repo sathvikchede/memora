@@ -11,8 +11,6 @@ import {
   FileText,
   UserX,
   Camera,
-  PlusCircle,
-  History
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,7 +23,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useInformation, Entry } from "@/context/information-context";
 import { useRouter } from "next/navigation";
-import { Separator } from "../ui/separator";
 
 export function AddClient() {
   const { entries, addEntry } = useInformation();
@@ -69,21 +66,14 @@ export function AddClient() {
     }
   }
 
+  const entriesForAdd = entries.filter(e => e.type === 'add');
+
   return (
     <div className="flex h-full flex-col px-4 sm:px-6 lg:px-8">
         <div className="mx-auto flex h-full w-full max-w-4xl flex-col">
-            <div className="flex h-14 items-center justify-center gap-2">
-                <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask')}>
-                    <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
-                </Button>
-                <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask')}>
-                    <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
-                </Button>
-            </div>
-            <Separator />
             <ScrollArea className="flex-1 pr-4">
                 <div className="space-y-4 py-4">
-                    {entries.map(entry => (
+                    {entriesForAdd.map(entry => (
                         <div key={entry.id} className="space-y-2">
                             <div className="rounded-md border p-4">{entry.text}</div>
                             {entry.status && (
