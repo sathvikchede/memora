@@ -163,16 +163,14 @@ export function AddClient() {
 
   const renderNav = () => {
     return (
-        <div className="relative flex w-full items-center justify-end">
-            <div className="flex">
-                <Button variant="ghost" onClick={() => router.push('/ask')}>
-                    <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
-                </Button>
-                <Button variant="ghost" onClick={() => router.push('/ask?view=history')}>
-                    <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
-                </Button>
-            </div>
-        </div>
+        <>
+            <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask')}>
+                <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
+            </Button>
+            <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask?view=history')}>
+                <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
+            </Button>
+        </>
     );
   };
 
