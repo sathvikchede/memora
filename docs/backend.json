@@ -30,6 +30,10 @@
         "creditBalance": {
           "type": "number",
           "description": "User's current credit balance."
+        },
+        "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Whether the user has completed the onboarding flow."
         }
       },
       "required": [
@@ -376,7 +380,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {

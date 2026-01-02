@@ -132,7 +132,7 @@ service cloud.firestore {
      * @principle Enforces shared access for members and exclusive write access for the creator.
      */
     match /spaces/{spaceId} {
-      allow get, list: if isSpaceMember(spaceId);
+      allow get, list: if isSignedIn(); // Allow reading for joining via invite code
       allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
       allow update: if isSpaceCreator(spaceId);
       allow delete: if isSpaceCreator(spaceId);
