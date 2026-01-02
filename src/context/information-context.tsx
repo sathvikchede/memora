@@ -210,19 +210,31 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
                 setQuestions(initialQuestions);
             }
             
-            const savedUsers = localStorage.getItem(USERS_KEY);
-            if(savedUsers) {
-                setUsers(JSON.parse(savedUsers));
+            const savedUsersJSON = localStorage.getItem(USERS_KEY);
+            let savedUsers = null;
+            if (savedUsersJSON) {
+                try {
+                    savedUsers = JSON.parse(savedUsersJSON);
+                } catch (e) {
+                    console.error("Failed to parse users from localStorage", e);
+                }
+            }
+
+            if(savedUsers && savedUsers.length === initialUsers.length) {
+                setUsers(savedUsers);
             } else {
                 setUsers(initialUsers);
+                 localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
             }
+            
+            const finalUsers = savedUsers && savedUsers.length === initialUsers.length ? savedUsers : initialUsers;
             
             const savedUser = localStorage.getItem('memora-current-user');
             if(savedUser) {
-                const userToSet = (savedUsers ? JSON.parse(savedUsers) : initialUsers).find(u => u.id === JSON.parse(savedUser).id) || initialUsers[0];
+                const userToSet = finalUsers.find(u => u.id === JSON.parse(savedUser).id) || finalUsers[0];
                 setCurrentUserInternal(userToSet);
             } else {
-                setCurrentUserInternal(initialUsers[0]);
+                setCurrentUserInternal(finalUsers[0]);
             }
 
             const savedChatMessages = localStorage.getItem('memora-chat-messages');
@@ -433,3 +445,6 @@ export const useInformation = () => {
     }
     return context;
 };
+
+    
+    
