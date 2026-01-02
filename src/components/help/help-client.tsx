@@ -77,8 +77,8 @@ function HelpClientContent() {
         if (navViews.includes(view)) {
             return (
                 <div className="flex w-full items-center justify-center gap-2">
-                    <Button variant={view === "open-queries" ? "secondary" : "ghost"} className="flex-1" onClick={() => navigate("open-queries")}>Open Queries</Button>
                     <Button variant={view === "your-queries" ? "secondary" : "ghost"} className="flex-1" onClick={() => navigate("your-queries")}>Your Queries</Button>
+                    <Button variant={view === "open-queries" ? "secondary" : "ghost"} className="flex-1" onClick={() => navigate("open-queries")}>Open Queries</Button>
                     <Button variant={view === "your-responses" ? "secondary" : "ghost"} className="flex-1" onClick={() => navigate("your-responses")}>Your Responses</Button>
                 </div>
             );
