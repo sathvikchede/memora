@@ -127,7 +127,7 @@ export function AskClient() {
                     {sourcesForChat.map((source, index) => (
                         <div key={index} className="py-4">
                             <div className="flex justify-between text-sm text-muted-foreground">
-                                <span>{source.type}</span>
+                                <span>{source.type.charAt(0).toUpperCase() + source.type.slice(1)}</span>
                                 <span>{source.date}</span>
                             </div>
                             <p className="my-2">{source.rawInformation}</p>
