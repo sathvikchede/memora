@@ -51,11 +51,13 @@ export function AddClient() {
   const [view, setView] = useState<'add' | 'history'>('add');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [latestEntry, setLatestEntry] = useState<Entry | null>(null);
 
 
   const handleSend = async () => {
     if (input.trim() || uploadedFiles.length > 0) {
       setIsSending(true);
+      let newEntry: Entry | null = null;
 
       if (uploadedFiles.length > 0) {
         for (const file of uploadedFiles) {
@@ -65,7 +67,7 @@ export function AddClient() {
             };
             try {
                 const result = await processMultimediaInput(multimediaInput);
-                const newEntry: Entry = {
+                newEntry = {
                     id: `entry-${Date.now()}`,
                     text: result.summary,
                     contributor: isAnonymous ? "Anonymous" : currentUser.name,
@@ -76,7 +78,7 @@ export function AddClient() {
                 addEntry(newEntry);
             } catch (error) {
                 console.error("Error processing file:", error);
-                 const errorEntry: Entry = {
+                 newEntry = {
                     id: `entry-${Date.now()}`,
                     text: `Failed to process file: ${file.name}`,
                     contributor: isAnonymous ? "Anonymous" : currentUser.name,
@@ -84,7 +86,7 @@ export function AddClient() {
                     type: 'add',
                     status: 'mismatch'
                 };
-                addEntry(errorEntry);
+                addEntry(newEntry);
             }
         }
       } else if (input.trim()) {
@@ -94,7 +96,7 @@ export function AddClient() {
 
         try {
           const result = await summarizeUserInformation(summarizeInput);
-          const newEntry: Entry = {
+          newEntry = {
             id: result.summaryId || `entry-${Date.now()}`,
             text: result.summary,
             contributor: isAnonymous ? "Anonymous" : currentUser.name,
@@ -105,7 +107,7 @@ export function AddClient() {
           addEntry(newEntry);
         } catch (error) {
           console.error("Error summarizing information:", error);
-          const errorEntry: Entry = {
+          newEntry = {
             id: `entry-${Date.now()}`,
             text: "Failed to summarize and add your entry.",
             contributor: isAnonymous ? "Anonymous" : currentUser.name,
@@ -113,10 +115,13 @@ export function AddClient() {
             type: 'add',
             status: 'mismatch'
           };
-          addEntry(errorEntry);
+          addEntry(newEntry);
         }
       }
-
+      
+      if (newEntry) {
+          setLatestEntry(newEntry);
+      }
       setInput("");
       setUploadedFiles([]);
       setIsSending(false);
@@ -214,14 +219,20 @@ export function AddClient() {
   }
 
   const entriesForAdd = entries.filter(e => e.type === 'add');
-  const latestEntry = entriesForAdd.length > 0 ? entriesForAdd[entriesForAdd.length - 1] : null;
+  
+  const handleNewChatClick = () => {
+    setView('add');
+    setInput('');
+    setUploadedFiles([]);
+    setLatestEntry(null);
+  };
 
 
   const renderNav = () => {
     return (
       <div className="flex h-14 w-full items-center justify-center gap-2">
-        <Button variant={view === 'add' ? 'secondary' : 'ghost'} className="w-1/2" onClick={() => setView('add')}>
-          <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">Add</span>
+        <Button variant={view === 'add' ? 'secondary' : 'ghost'} className="w-1/2" onClick={handleNewChatClick}>
+          <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
         </Button>
         <Button variant={view === 'history' ? 'secondary' : 'ghost'} className="w-1/2" onClick={() => setView('history')}>
           <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
@@ -383,5 +394,3 @@ export function AddClient() {
     </div>
   );
 }
-
-    
