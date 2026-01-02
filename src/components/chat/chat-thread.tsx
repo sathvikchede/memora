@@ -108,29 +108,30 @@ export function ChatThread({ recipient }: ChatThreadProps) {
             <div
               key={message.id}
               className={cn(
-                'flex items-start gap-3',
+                'relative flex items-start gap-3',
                 message.senderId === currentUser.id
                   ? 'justify-end'
                   : 'justify-start'
               )}
             >
+              {message.remembered && (
+                  <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-white"></div>
+                )}
               {message.senderId === recipient.id && (
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 ml-4">
                   <AvatarImage src={recipient.avatar} />
                   <AvatarFallback>{recipient.name.charAt(0)}</AvatarFallback>
                 </Avatar>
               )}
               <div
                 className={cn(
-                  'relative max-w-[75%] rounded-lg',
+                  'max-w-[75%] rounded-lg',
                   message.senderId === currentUser.id
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
+                    : 'bg-muted',
+                  message.senderId === recipient.id && !message.remembered ? 'ml-4' : ''
                 )}
               >
-                {message.remembered && (
-                  <div className="absolute -left-3 top-0 h-full w-1 rounded-full bg-white"></div>
-                )}
                 <p className="p-3 text-sm">{message.content}</p>
               </div>
             </div>
