@@ -29,22 +29,22 @@ export default function MainLayout({
 }) {
   const pathname = usePathname();
   const activeTab = TABS[pathname] || "";
-  const { user, isUserLoading } = useUser();
-  const router = useRouter();
+  // const { user, isUserLoading } = useUser();
+  // const router = useRouter();
 
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isUserLoading, router]);
+  // useEffect(() => {
+  //   if (!isUserLoading && !user) {
+  //     router.push('/login');
+  //   }
+  // }, [user, isUserLoading, router]);
 
-  if (isUserLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
-  }
+  // if (isUserLoading) {
+  //   return (
+  //     <div className="flex min-h-screen items-center justify-center">
+  //       <p>Loading...</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <InformationProvider>
