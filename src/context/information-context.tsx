@@ -223,8 +223,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const savedEntries = localStorage.getItem('memora-entries');
-            // For testing, let's start with no entries.
-            // if (savedEntries) setEntries(JSON.parse(savedEntries));
+            if (savedEntries) setEntries(JSON.parse(savedEntries));
 
             const savedQuestions = localStorage.getItem('memora-questions');
             if (savedQuestions && JSON.parse(savedQuestions).length > 0) {
