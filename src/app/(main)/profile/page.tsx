@@ -1,7 +1,9 @@
+import { ProfileClient } from '@/components/profile/profile-client';
+
 export default function ProfilePage() {
-    return (
-        <div className="flex h-full items-center justify-center">
-            <p className="text-muted-foreground">Profile page is not yet implemented.</p>
-        </div>
-    );
+  return (
+    <div className="h-full w-full">
+      <ProfileClient />
+    </div>
+  );
 }
