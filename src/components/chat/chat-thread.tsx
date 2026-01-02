@@ -103,7 +103,6 @@ export function ChatThread({ recipient }: ChatThreadProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="relative flex-1">
-        <div className="absolute inset-y-0 left-0 w-1 bg-white/20"></div>
         <ScrollArea className="h-full pr-4">
           <div className="space-y-6 py-4">
             {messages.map((message) => (
@@ -117,7 +116,7 @@ export function ChatThread({ recipient }: ChatThreadProps) {
                 )}
               >
                 {message.remembered && (
-                  <div className="absolute left-0 top-0 h-full w-1 bg-white"></div>
+                  <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-white"></div>
                 )}
                 {message.senderId === recipient.id && (
                   <Avatar className="h-8 w-8 ml-4">
@@ -131,7 +130,7 @@ export function ChatThread({ recipient }: ChatThreadProps) {
                     message.senderId === currentUser.id
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted',
-                    message.senderId === recipient.id ? 'ml-4' : ''
+                    message.remembered && 'ml-4'
                   )}
                 >
                   <p className="p-3 text-sm">{message.content}</p>
