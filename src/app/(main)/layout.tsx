@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   SidebarProvider,
   Sidebar,
@@ -8,6 +8,9 @@ import {
 } from "@/components/ui/sidebar";
 import { MainSidebar } from "@/components/layout/main-sidebar";
 import { Header } from "@/components/layout/header";
+import { useUser } from "@/firebase";
+import { useEffect } from "react";
+import { InformationProvider } from "@/context/information-context";
 
 const TABS: { [key: string]: string } = {
   "/ask": "Ask.",
@@ -26,21 +29,36 @@ export default function MainLayout({
 }) {
   const pathname = usePathname();
   const activeTab = TABS[pathname] || "";
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
-  // The original auth check is disabled for the test environment.
-  // When you want to restore it, let me know!
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <MainSidebar activeTab={pathname} />
-      </Sidebar>
-      <SidebarInset>
-        <div className="flex h-full flex-col">
-          <Header activeTab={activeTab} />
-          <main className="flex-1 overflow-y-auto">{children}</main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <InformationProvider>
+      <SidebarProvider>
+        <Sidebar collapsible="icon">
+          <MainSidebar activeTab={pathname} />
+        </Sidebar>
+        <SidebarInset>
+          <div className="flex h-full flex-col">
+            <Header activeTab={activeTab} />
+            <main className="flex-1 overflow-y-auto">{children}</main>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </InformationProvider>
   );
 }
