@@ -39,8 +39,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6 text-center">
         <h1 className="text-4xl font-bold">memora.</h1>
         <p className="text-muted-foreground">
-          An information base that strictly answers based on the knowledge that
-          it has gained through inputs.
+          From memory to meaning.
         </p>
         <Button onClick={handleGoogleSignIn} className="w-full" disabled={!auth || isLoading}>
           {isLoading ? (
