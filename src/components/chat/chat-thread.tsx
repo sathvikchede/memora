@@ -102,42 +102,46 @@ export function ChatThread({ recipient }: ChatThreadProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <ScrollArea className="flex-1 pr-4">
-        <div className="space-y-6 py-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                'relative flex items-start gap-3',
-                message.senderId === currentUser.id
-                  ? 'justify-end'
-                  : 'justify-start'
-              )}
-            >
-              {message.remembered && (
-                  <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-white"></div>
-                )}
-              {message.senderId === recipient.id && (
-                <Avatar className="h-8 w-8 ml-4">
-                  <AvatarImage src={recipient.avatar} />
-                  <AvatarFallback>{recipient.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-              )}
+      <div className="relative flex-1">
+        <div className="absolute inset-y-0 left-0 w-1 bg-white/20"></div>
+        <ScrollArea className="h-full pr-4">
+          <div className="space-y-6 py-4">
+            {messages.map((message) => (
               <div
+                key={message.id}
                 className={cn(
-                  'max-w-[75%] rounded-lg',
+                  'relative flex items-start gap-3',
                   message.senderId === currentUser.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted',
-                  message.senderId === recipient.id && !message.remembered ? 'ml-4' : ''
+                    ? 'justify-end'
+                    : 'justify-start'
                 )}
               >
-                <p className="p-3 text-sm">{message.content}</p>
+                {message.remembered && (
+                  <div className="absolute left-0 top-0 h-full w-1 bg-white"></div>
+                )}
+                {message.senderId === recipient.id && (
+                  <Avatar className="h-8 w-8 ml-4">
+                    <AvatarImage src={recipient.avatar} />
+                    <AvatarFallback>{recipient.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                )}
+                <div
+                  className={cn(
+                    'max-w-[75%] rounded-lg',
+                    message.senderId === currentUser.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted',
+                    message.senderId === recipient.id ? 'ml-4' : ''
+                  )}
+                >
+                  <p className="p-3 text-sm">{message.content}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+
 
       <div className="flex-shrink-0 bg-background py-4">
         <div className="space-y-2">
