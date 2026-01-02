@@ -11,6 +11,7 @@ import {
   FileText,
   UserX,
   Camera,
+  X
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useInformation } from "@/context/information-context";
 import { answerUserQuery, AnswerUserQueryInput } from "@/ai/flows/answer-user-queries-with-sources";
+import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
 
 interface Message {
   id: string;
@@ -37,6 +39,13 @@ interface ChatInterfaceProps {
   onPost?: (question: string) => void;
 }
 
+interface UploadedFile {
+  id: string;
+  name: string;
+  type: 'image' | 'file';
+  url: string; // data URL
+}
+
 const initialMessages: Message[] = [
     { id: 'ai-1', text: "Hello! How can I help you today?", sender: 'ai' },
 ];
@@ -44,31 +53,57 @@ const initialMessages: Message[] = [
 export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
   const formId = useId();
-  const { entries } = useInformation();
+  const { entries, addEntry } = useInformation();
   const [isThinking, setIsThinking] = useState(false);
   const lastUserMessage = messages.filter(m => m.sender === 'user').pop();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
 
   const handleSend = async () => {
-    if (input.trim()) {
+    if (input.trim() || uploadedFiles.length > 0) {
         setMessages(prev => prev.map(m => ({ ...m, showActions: false })));
-        const userMessage: Message = { id: `user-${Date.now()}`, text: input, sender: 'user' };
+        const userMessageText = input.trim();
+        const userMessage: Message = { id: `user-${Date.now()}`, text: userMessageText, sender: 'user' };
         setMessages(prev => [...prev, userMessage]);
         setInput("");
         setIsThinking(true);
         
-        if (entries.length === 0) {
+        let aiResponseText = '';
+
+        if (uploadedFiles.length > 0) {
+            const file = uploadedFiles[0];
+            const multimediaInput: ProcessMultimediaInputInput = {
+                mediaDataUri: file.url,
+                additionalText: userMessageText
+            };
+            try {
+                const result = await processMultimediaInput(multimediaInput);
+                addEntry({
+                    id: `entry-${Date.now()}`,
+                    text: result.summary,
+                    contributor: 'You (via upload)',
+                    date: new Date().toISOString().split("T")[0],
+                    type: 'add'
+                });
+                aiResponseText = `I've processed the content of "${file.name}". Here's a summary: ${result.summary}\n\nHow can I help you with this information?`;
+            } catch(error) {
+                console.error("Error processing multimedia:", error);
+                aiResponseText = `Sorry, I couldn't process the file ${file.name}.`;
+            }
+            setUploadedFiles([]);
+        } else if (entries.length === 0) {
             // Simulate AI response
-            setTimeout(() => {
-                const aiResponse: Message = { id: `ai-${Date.now()}`, text: `This is a simulated AI response to: "${userMessage.text}". I don't have enough information yet.`, sender: 'ai', showActions: true };
-                setMessages(prev => [...prev, aiResponse]);
-                setIsThinking(false);
-            }, 1000);
+            aiResponseText = `This is a simulated AI response to: "${userMessageText}". I don't have enough information yet.`;
         } else {
             const queryInput: AnswerUserQueryInput = {
-                query: input,
+                query: userMessageText,
                 summaries: entries.map(e => e.text),
                 sources: entries.map(e => ({
                     contributor: e.contributor,
@@ -80,17 +115,86 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
 
             try {
                 const result = await answerUserQuery(queryInput);
-                const aiResponse: Message = { id: `ai-${Date.now()}`, text: result.answer, sender: 'ai', showActions: true };
-                setMessages(prev => [...prev, aiResponse]);
+                aiResponseText = result.answer;
             } catch (error) {
                 console.error("Error calling AI flow:", error);
-                const errorResponse: Message = { id: `ai-${Date.now()}`, text: "Sorry, I encountered an error while processing your request.", sender: 'ai', showActions: false };
-                setMessages(prev => [...prev, errorResponse]);
-            } finally {
-                setIsThinking(false);
+                aiResponseText = "Sorry, I encountered an error while processing your request.";
             }
         }
+        
+        const aiResponse: Message = { 
+            id: `ai-${Date.now()}`, 
+            text: aiResponseText, 
+            sender: 'ai', 
+            showActions: true 
+        };
+        setMessages(prev => [...prev, aiResponse]);
+        setIsThinking(false);
     }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newFile: UploadedFile = {
+          id: `file-${Date.now()}`,
+          name: file.name,
+          type: file.type.startsWith('image/') ? 'image' : 'file',
+          url: e.target?.result as string,
+        };
+        setUploadedFiles([newFile]); // Allow only one file for now
+      };
+      reader.readAsDataURL(file);
+    }
+    if(event.target) event.target.value = '';
+  };
+  
+  const removeUploadedFile = (id: string) => {
+    setUploadedFiles((prev) => prev.filter((file) => file.id !== id));
+  };
+
+
+  const handleVoiceInput = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = false;
+    recognitionRef.current.interimResults = true;
+    recognitionRef.current.lang = 'en-US';
+
+    recognitionRef.current.onstart = () => {
+      setIsRecording(true);
+    };
+
+    recognitionRef.current.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current.onresult = (event: any) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        setInput(prev => prev ? `${prev} ${finalTranscript}` : finalTranscript);
+      }
+    };
+    
+    recognitionRef.current.start();
   };
 
   useEffect(() => {
@@ -101,6 +205,14 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
       textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }
   }, [input, isMobile]);
+  
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   const atBottom = messages.length > 2;
 
@@ -162,6 +274,36 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
 
       <div className={cn("mt-4 flex-shrink-0", { "sticky bottom-0 bg-background py-4": atBottom })}>
         <div className="space-y-2">
+            {uploadedFiles.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {uploadedFiles.map((file) => (
+                <div key={file.id} className="relative shrink-0">
+                  {file.type === 'image' ? (
+                    <img
+                      src={file.url}
+                      alt={file.name}
+                      className="h-20 w-20 rounded-md object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 flex-col items-center justify-center rounded-md border bg-muted">
+                      <FileText className="h-8 w-8" />
+                      <span className="mt-1 max-w-full truncate px-1 text-xs">
+                        {file.name}
+                      </span>
+                    </div>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
+                    onClick={() => removeUploadedFile(file.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
             <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -171,13 +313,13 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        {isMobile && <DropdownMenuItem><Camera className="mr-2 h-4 w-4" /> Camera</DropdownMenuItem>}
-                        <DropdownMenuItem><ImageIcon className="mr-2 h-4 w-4" /> Image</DropdownMenuItem>
-                        <DropdownMenuItem><FileText className="mr-2 h-4 w-4" /> File</DropdownMenuItem>
+                        {isMobile && <DropdownMenuItem asChild><label className="flex items-center"><Camera className="mr-2 h-4 w-4" /> Camera</label></DropdownMenuItem>}
+                        <DropdownMenuItem asChild><label className="flex items-center"><ImageIcon className="mr-2 h-4 w-4" /> Image<input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
+                        <DropdownMenuItem asChild><label className="flex items-center"><FileText className="mr-2 h-4 w-4" /> File<input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                 
-                <Button variant="ghost" className="flex-1" aria-label="Voice Input" disabled={isThinking}>
+                <Button variant={isRecording ? "secondary" : "ghost"} className="flex-1" aria-label="Voice Input" onClick={handleVoiceInput} disabled={isThinking}>
                     <Mic />
                     <span className="hidden md:ml-2 md:inline">Voice</span>
                 </Button>
@@ -206,7 +348,7 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
                     type="submit"
                     size="icon"
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full"
-                    disabled={!input.trim() || isThinking}
+                    disabled={(!input.trim() && uploadedFiles.length === 0) || isThinking}
                 >
                     {isThinking ? (
                         <div className="h-4 w-4 border-2 border-background/80 border-t-transparent rounded-full animate-spin" />

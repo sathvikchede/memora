@@ -11,6 +11,9 @@ import {
   FileText,
   UserX,
   Camera,
+  History,
+  PlusCircle,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,6 +26,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useInformation, Entry } from "@/context/information-context";
 import { useRouter } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  type: 'image' | 'file';
+  url: string; // data URL
+}
 
 export function AddClient() {
   const { entries, addEntry } = useInformation();
@@ -31,6 +42,11 @@ export function AddClient() {
   const isMobile = useIsMobile();
   const formId = useId();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const handleSend = () => {
     if (input.trim()) {
@@ -45,7 +61,72 @@ export function AddClient() {
       };
       addEntry(newEntry);
       setInput("");
+      setUploadedFiles([]);
     }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newFile: UploadedFile = {
+          id: `file-${Date.now()}`,
+          name: file.name,
+          type: file.type.startsWith('image/') ? 'image' : 'file',
+          url: e.target?.result as string,
+        };
+        setUploadedFiles((prev) => [...prev, newFile]);
+      };
+      reader.readAsDataURL(file);
+    }
+    if (event.target) event.target.value = '';
+  };
+  
+  const removeUploadedFile = (id: string) => {
+    setUploadedFiles((prev) => prev.filter((file) => file.id !== id));
+  };
+
+
+  const handleVoiceInput = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = false;
+    recognitionRef.current.interimResults = true;
+    recognitionRef.current.lang = 'en-US';
+
+    recognitionRef.current.onstart = () => {
+      setIsRecording(true);
+    };
+
+    recognitionRef.current.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current.onresult = (event: any) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        setInput(prev => prev ? `${prev} ${finalTranscript}` : finalTranscript);
+      }
+    };
+    
+    recognitionRef.current.start();
   };
 
   useEffect(() => {
@@ -56,6 +137,14 @@ export function AddClient() {
       textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }
   }, [input, isMobile]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   const getStatusMessage = (status?: 'success' | 'adjusted' | 'mismatch') => {
     switch (status) {
@@ -70,7 +159,13 @@ export function AddClient() {
 
   return (
     <div className="flex h-full flex-col px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto flex h-full w-full max-w-4xl flex-col">
+      <div className="mx-auto flex h-full w-full max-w-4xl flex-col">
+          <div className="flex h-14 items-center justify-center gap-2">
+             <div className="relative flex w-full items-center justify-center">
+                <span className="truncate px-16 text-center font-bold text-lg">Add</span>
+             </div>
+          </div>
+          <Separator />
             <ScrollArea className="flex-1 pr-4">
                 <div className="space-y-4 py-4">
                     {entriesForAdd.map(entry => (
@@ -89,62 +184,92 @@ export function AddClient() {
             </ScrollArea>
 
             <div className="flex-shrink-0 bg-background py-4">
-                <div className="space-y-2">
-                    <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="flex-1" aria-label="Upload">
-                                    <Upload />
-                                    <span className="hidden md:ml-2 md:inline">Upload</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                {isMobile && <DropdownMenuItem><Camera className="mr-2 h-4 w-4" /> Camera</DropdownMenuItem>}
-                                <DropdownMenuItem><ImageIcon className="mr-2 h-4 w-4" /> Image</DropdownMenuItem>
-                                <DropdownMenuItem><FileText className="mr-2 h-4 w-4" /> File</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        
-                        <Button variant="ghost" className="flex-1" aria-label="Anonymous">
-                            <UserX />
-                            <span className="hidden md:ml-2 md:inline">Anonymous</span>
-                        </Button>
-
-                        <Button variant="ghost" className="flex-1" aria-label="Voice Input">
-                            <Mic />
-                            <span className="hidden md:ml-2 md:inline">Voice</span>
-                        </Button>
-                    </div>
-                    <form
-                        id={formId}
-                        onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                        className="relative flex items-center"
-                    >
-                        <Textarea
-                            ref={textareaRef}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend();
-                                }
-                            }}
-                            placeholder="Add information to Memora..."
-                            className="min-h-[48px] resize-none pr-12 rounded-full py-3.5"
-                            rows={1}
+            <div className="space-y-2">
+               {uploadedFiles.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {uploadedFiles.map((file) => (
+                    <div key={file.id} className="relative shrink-0">
+                      {file.type === 'image' ? (
+                        <img
+                          src={file.url}
+                          alt={file.name}
+                          className="h-20 w-20 rounded-md object-cover"
                         />
-                        <Button
-                            type="submit"
-                            size="icon"
-                            className="absolute right-2 rounded-full"
-                            disabled={!input.trim()}
-                        >
-                            <Send className="h-4 w-4" />
-                        </Button>
-                    </form>
+                      ) : (
+                        <div className="flex h-20 w-20 flex-col items-center justify-center rounded-md border bg-muted">
+                          <FileText className="h-8 w-8" />
+                          <span className="mt-1 max-w-full truncate px-1 text-xs">
+                            {file.name}
+                          </span>
+                        </div>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
+                        onClick={() => removeUploadedFile(file.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
+              )}
+                <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="flex-1" aria-label="Upload">
+                                <Upload />
+                                <span className="hidden md:ml-2 md:inline">Upload</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            {isMobile && <DropdownMenuItem><Camera className="mr-2 h-4 w-4" /> Camera</DropdownMenuItem>}
+                            <DropdownMenuItem asChild><label className="flex items-center"><ImageIcon className="mr-2 h-4 w-4" /> Image<input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
+                            <DropdownMenuItem asChild><label className="flex items-center"><FileText className="mr-2 h-4 w-4" /> File<input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    
+                    <Button variant="ghost" className="flex-1" aria-label="Anonymous">
+                        <UserX />
+                        <span className="hidden md:ml-2 md:inline">Anonymous</span>
+                    </Button>
+
+                    <Button variant={isRecording ? "secondary" : "ghost"} className="flex-1" aria-label="Voice Input" onClick={handleVoiceInput}>
+                        <Mic />
+                        <span className="hidden md:ml-2 md:inline">Voice</span>
+                    </Button>
+                </div>
+                <form
+                    id={formId}
+                    onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                    className="relative flex items-center"
+                >
+                    <Textarea
+                        ref={textareaRef}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSend();
+                            }
+                        }}
+                        placeholder="Add information to Memora..."
+                        className="min-h-[48px] resize-none pr-12 rounded-full py-3.5"
+                        rows={1}
+                    />
+                    <Button
+                        type="submit"
+                        size="icon"
+                        className="absolute right-2 rounded-full"
+                        disabled={!input.trim()}
+                    >
+                        <Send className="h-4 w-4" />
+                    </Button>
+                </form>
             </div>
+        </div>
         </div>
     </div>
   );
