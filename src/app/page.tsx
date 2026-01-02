@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
+// In mock auth mode, we redirect directly to the main app page.
 export default function Home() {
-  // Redirect directly to the main app page for test mode.
   redirect('/ask');
 }

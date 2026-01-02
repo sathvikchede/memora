@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/sidebar";
 import { MainSidebar } from "@/components/layout/main-sidebar";
 import { Header } from "@/components/layout/header";
-import { InformationProvider } from "@/context/information-context";
 
 const TABS: { [key: string]: string } = {
   "/ask": "Ask.",
@@ -28,8 +27,10 @@ export default function MainLayout({
   const pathname = usePathname();
   const activeTab = TABS[pathname] || "";
 
+  // NOTE: All authentication logic has been removed for mock mode.
+  // The user is managed by the InformationProvider.
+
   return (
-    <InformationProvider>
       <SidebarProvider>
         <Sidebar collapsible="icon">
           <MainSidebar activeTab={pathname} />
@@ -41,6 +42,5 @@ export default function MainLayout({
           </div>
         </SidebarInset>
       </SidebarProvider>
-    </InformationProvider>
   );
 }
