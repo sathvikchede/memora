@@ -46,6 +46,66 @@ const USERS: Author[] = [
     { id: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png' },
 ];
 
+const initialQuestions: Question[] = [
+    {
+        id: 'q1',
+        question: 'What is the best way to learn React?',
+        author: USERS[1],
+        answers: [
+            {
+                id: 'a1-1',
+                text: 'The official React documentation is a great place to start. It\'s comprehensive and always up-to-date.',
+                author: USERS[0],
+                upvotes: 15,
+                downvotes: 1,
+                followUps: [
+                    {
+                        id: 'f1-1-1',
+                        question: 'Thanks! Any specific projects you\'d recommend for beginners?',
+                        author: USERS[1],
+                        answers: [
+                             {
+                                id: 'fa1-1',
+                                text: 'Build a to-do list app. It covers all the basics: state management, props, and event handling.',
+                                author: USERS[2],
+                                upvotes: 10,
+                                downvotes: 0,
+                                followUps: [],
+                            }
+                        ],
+                        relevance: 'high',
+                        isFollowUp: true,
+                        parentId: 'q1'
+                    }
+                ]
+            },
+            {
+                id: 'a1-2',
+                text: 'I found that building a small project, like a personal blog or a weather app, helped solidify my understanding.',
+                author: USERS[2],
+                upvotes: 8,
+                downvotes: 0,
+                followUps: []
+            }
+        ],
+        relevance: 'high',
+    },
+    {
+        id: 'q2',
+        question: 'How does CSS Grid differ from Flexbox?',
+        author: USERS[2],
+        answers: [],
+        relevance: 'medium'
+    },
+    {
+        id: 'q3',
+        question: 'What are the benefits of using TypeScript with React?',
+        author: USERS[0],
+        answers: [],
+        relevance: 'low'
+    }
+];
+
 interface InformationContextType {
     entries: Entry[];
     addEntry: (entry: Entry) => void;
@@ -58,6 +118,7 @@ interface InformationContextType {
     setCurrentUser: (user: Author) => void;
     upvoteAnswer: (questionId: string, answerId: string) => void;
     downvoteAnswer: (questionId: string, answerId: string) => void;
+    isReady: boolean;
 }
 
 const InformationContext = createContext<InformationContextType | undefined>(undefined);
@@ -66,33 +127,42 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<Entry[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentUser, setCurrentUserInternal] = useState<Author>(USERS[0]);
-    const [isClient, setIsClient] = useState(false);
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        setIsClient(true);
         if (typeof window !== 'undefined') {
             const savedEntries = localStorage.getItem('memora-entries');
-            if (savedEntries) setEntries(JSON.parse(savedEntries));
+            // For testing, let's start with no entries.
+            // if (savedEntries) setEntries(JSON.parse(savedEntries));
 
             const savedQuestions = localStorage.getItem('memora-questions');
-            if (savedQuestions) setQuestions(JSON.parse(savedQuestions));
+            if (savedQuestions && JSON.parse(savedQuestions).length > 0) {
+                 setQuestions(JSON.parse(savedQuestions));
+            } else {
+                setQuestions(initialQuestions);
+            }
             
             const savedUser = localStorage.getItem('memora-current-user');
-            if(savedUser) setCurrentUserInternal(JSON.parse(savedUser));
+            if(savedUser) {
+                setCurrentUserInternal(JSON.parse(savedUser));
+            } else {
+                setCurrentUserInternal(USERS[0]);
+            }
+            setIsReady(true);
         }
     }, []);
 
     useEffect(() => {
-        if (isClient) {
+        if (isReady) {
             localStorage.setItem('memora-entries', JSON.stringify(entries));
         }
-    }, [entries, isClient]);
+    }, [entries, isReady]);
 
      useEffect(() => {
-        if (isClient) {
+        if (isReady) {
             localStorage.setItem('memora-questions', JSON.stringify(questions));
         }
-    }, [questions, isClient]);
+    }, [questions, isReady]);
 
     const setCurrentUser = (user: Author) => {
         setCurrentUserInternal(user);
@@ -219,7 +289,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users: USERS, currentUser, setCurrentUser, upvoteAnswer, downvoteAnswer }}>
+        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users: USERS, currentUser, setCurrentUser, upvoteAnswer, downvoteAnswer, isReady }}>
             {children}
         </InformationContext.Provider>
     );
