@@ -47,6 +47,8 @@ export function AddClient() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const [view, setView] = useState<'add' | 'history'>('add');
+
 
   const handleSend = () => {
     if (input.trim()) {
@@ -157,13 +159,24 @@ export function AddClient() {
 
   const entriesForAdd = entries.filter(e => e.type === 'add');
 
+  const renderNav = () => {
+    return (
+        <>
+            <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask')}>
+              <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
+            </Button>
+            <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask?view=history')}>
+              <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
+            </Button>
+        </>
+    );
+  };
+
   return (
     <div className="flex h-full flex-col px-4 sm:px-6 lg:px-8">
       <div className="mx-auto flex h-full w-full max-w-4xl flex-col">
           <div className="flex h-14 items-center justify-center gap-2">
-             <div className="relative flex w-full items-center justify-center">
-                <span className="truncate px-16 text-center font-bold text-lg">Add</span>
-             </div>
+             {renderNav()}
           </div>
           <Separator />
             <ScrollArea className="flex-1 pr-4">
@@ -224,7 +237,7 @@ export function AddClient() {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            {isMobile && <DropdownMenuItem><Camera className="mr-2 h-4 w-4" /> Camera</DropdownMenuItem>}
+                            {isMobile && <DropdownMenuItem><label className="flex items-center"><Camera className="mr-2 h-4 w-4" /> Camera</label></DropdownMenuItem>}
                             <DropdownMenuItem asChild><label className="flex items-center"><ImageIcon className="mr-2 h-4 w-4" /> Image<input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
                             <DropdownMenuItem asChild><label className="flex items-center"><FileText className="mr-2 h-4 w-4" /> File<input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
                         </DropdownMenuContent>
