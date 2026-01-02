@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   SidebarProvider,
   Sidebar,
@@ -9,9 +9,6 @@ import {
 import { MainSidebar } from "@/components/layout/main-sidebar";
 import { Header } from "@/components/layout/header";
 import { InformationProvider } from "@/context/information-context";
-import { useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { useEffect } from "react";
-import { doc, getFirestore } from "firebase/firestore";
 
 const TABS: { [key: string]: string } = {
   "/ask": "Ask.",
@@ -30,34 +27,9 @@ export default function MainLayout({
 }) {
   const pathname = usePathname();
   const activeTab = TABS[pathname] || "";
-  const { user, isUserLoading } = useUser();
-  const router = useRouter();
 
-  const userDocRef = useMemoFirebase(() => {
-    const firestore = getFirestore();
-    return user ? doc(firestore, 'users', user.uid) : null;
-  }, [user]);
-
-  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
-
-  useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading;
-    if (!isLoading) {
-      if (!user) {
-        router.push('/login');
-      } else if (userData && !(userData as any).onboardingCompleted) {
-        router.push('/onboarding');
-      }
-    }
-  }, [user, userData, isUserLoading, isUserDataLoading, router]);
-
-  if (isUserLoading || isUserDataLoading || !user) {
-    return (
-       <div className="flex h-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
-  }
+  // The original auth check is disabled for the test environment.
+  // When you want to restore it, let me know!
 
   return (
     <InformationProvider>
