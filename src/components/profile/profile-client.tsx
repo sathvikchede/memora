@@ -17,17 +17,13 @@ export function ProfileClient() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-6">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-              <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <h1 className="text-3xl font-bold">{currentUser.name}</h1>
-          </div>
-        </CardHeader>
-      </Card>
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <Avatar className="h-32 w-32">
+          <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+          <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <h1 className="text-3xl font-bold">{currentUser.name}</h1>
+      </div>
     </div>
   );
 }
