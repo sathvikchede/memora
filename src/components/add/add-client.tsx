@@ -163,132 +163,144 @@ export function AddClient() {
 
   const renderNav = () => {
     return (
-        <>
-            <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask')}>
-                <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
-            </Button>
-            <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask?view=history')}>
-                <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
-            </Button>
-        </>
+      <div className="flex h-14 w-full items-center justify-center gap-2">
+        <Button variant={view === 'add' ? 'secondary' : 'ghost'} className="w-1/2" onClick={() => setView('add')}>
+          <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">Add</span>
+        </Button>
+        <Button variant={view === 'history' ? 'secondary' : 'ghost'} className="w-1/2" onClick={() => setView('history')}>
+          <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
+        </Button>
+      </div>
     );
   };
+
+  const renderAddView = () => (
+    <>
+      <div className="flex-1"></div>
+      <div className="flex-shrink-0 bg-background py-4">
+        <div className="space-y-2">
+          {uploadedFiles.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {uploadedFiles.map((file) => (
+                <div key={file.id} className="relative shrink-0">
+                  {file.type === 'image' ? (
+                    <img
+                      src={file.url}
+                      alt={file.name}
+                      className="h-20 w-20 rounded-md object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 flex-col items-center justify-center rounded-md border bg-muted">
+                      <FileText className="h-8 w-8" />
+                      <span className="mt-1 max-w-full truncate px-1 text-xs">
+                        {file.name}
+                      </span>
+                    </div>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
+                    onClick={() => removeUploadedFile(file.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex-1" aria-label="Upload">
+                  <Upload />
+                  <span className="hidden md:ml-2 md:inline">Upload</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {isMobile && <DropdownMenuItem><label className="flex items-center"><Camera className="mr-2 h-4 w-4" /> Camera</label></DropdownMenuItem>}
+                <DropdownMenuItem asChild><label className="flex items-center"><ImageIcon className="mr-2 h-4 w-4" /> Image<input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
+                <DropdownMenuItem asChild><label className="flex items-center"><FileText className="mr-2 h-4 w-4" /> File<input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button variant={isAnonymous ? "secondary" : "ghost"} className="flex-1" aria-label="Anonymous" onClick={() => setIsAnonymous(!isAnonymous)}>
+              <UserX />
+              <span className="hidden md:ml-2 md:inline">Anonymous</span>
+            </Button>
+
+            <Button variant={isRecording ? "secondary" : "ghost"} className="flex-1" aria-label="Voice Input" onClick={handleVoiceInput}>
+              <Mic />
+              <span className="hidden md:ml-2 md:inline">Voice</span>
+            </Button>
+          </div>
+          <form
+            id={formId}
+            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+            className="relative flex items-center"
+          >
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Add information to Memora..."
+              className="min-h-[48px] resize-none pr-12 rounded-full py-3.5"
+              rows={1}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="absolute right-2 rounded-full"
+              disabled={!input.trim() && uploadedFiles.length === 0}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderHistoryView = () => (
+    <ScrollArea className="flex-1 pr-4">
+      <div className="space-y-4 py-4">
+        {entriesForAdd.map(entry => (
+          <div key={entry.id} className="space-y-2">
+            {entry.contributor === 'Anonymous' && (
+              <p className="text-xs font-semibold text-muted-foreground">Anonymous</p>
+            )}
+            <div className="rounded-md border p-4">{entry.text}</div>
+            {entry.status && (
+              <Alert variant={entry.status === 'mismatch' ? 'destructive' : 'default'} className="border-0">
+                <AlertDescription className="text-muted-foreground">
+                  {getStatusMessage(entry.status)}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        ))}
+        {entriesForAdd.length === 0 && (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-muted-foreground">No entries added yet.</p>
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  );
 
   return (
     <div className="flex h-full flex-col px-4 sm:px-6 lg:px-8">
       <div className="mx-auto flex h-full w-full max-w-4xl flex-col">
-          <div className="flex h-14 items-center justify-center gap-2">
-             {renderNav()}
-          </div>
-          <Separator />
-            <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-4 py-4">
-                    {entriesForAdd.map(entry => (
-                        <div key={entry.id} className="space-y-2">
-                             {entry.contributor === 'Anonymous' && (
-                                <p className="text-xs font-semibold text-muted-foreground">Anonymous</p>
-                            )}
-                            <div className="rounded-md border p-4">{entry.text}</div>
-                            {entry.status && (
-                                <Alert variant={entry.status === 'mismatch' ? 'destructive' : 'default'} className="border-0">
-                                    <AlertDescription className="text-muted-foreground">
-                                        {getStatusMessage(entry.status)}
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </ScrollArea>
-
-            <div className="flex-shrink-0 bg-background py-4">
-            <div className="space-y-2">
-               {uploadedFiles.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {uploadedFiles.map((file) => (
-                    <div key={file.id} className="relative shrink-0">
-                      {file.type === 'image' ? (
-                        <img
-                          src={file.url}
-                          alt={file.name}
-                          className="h-20 w-20 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-20 w-20 flex-col items-center justify-center rounded-md border bg-muted">
-                          <FileText className="h-8 w-8" />
-                          <span className="mt-1 max-w-full truncate px-1 text-xs">
-                            {file.name}
-                          </span>
-                        </div>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
-                        onClick={() => removeUploadedFile(file.id)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-                <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="flex-1" aria-label="Upload">
-                                <Upload />
-                                <span className="hidden md:ml-2 md:inline">Upload</span>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            {isMobile && <DropdownMenuItem><label className="flex items-center"><Camera className="mr-2 h-4 w-4" /> Camera</label></DropdownMenuItem>}
-                            <DropdownMenuItem asChild><label className="flex items-center"><ImageIcon className="mr-2 h-4 w-4" /> Image<input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
-                            <DropdownMenuItem asChild><label className="flex items-center"><FileText className="mr-2 h-4 w-4" /> File<input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    
-                    <Button variant={isAnonymous ? "secondary" : "ghost"} className="flex-1" aria-label="Anonymous" onClick={() => setIsAnonymous(!isAnonymous)}>
-                        <UserX />
-                        <span className="hidden md:ml-2 md:inline">Anonymous</span>
-                    </Button>
-
-                    <Button variant={isRecording ? "secondary" : "ghost"} className="flex-1" aria-label="Voice Input" onClick={handleVoiceInput}>
-                        <Mic />
-                        <span className="hidden md:ml-2 md:inline">Voice</span>
-                    </Button>
-                </div>
-                <form
-                    id={formId}
-                    onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                    className="relative flex items-center"
-                >
-                    <Textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
-                        }}
-                        placeholder="Add information to Memora..."
-                        className="min-h-[48px] resize-none pr-12 rounded-full py-3.5"
-                        rows={1}
-                    />
-                    <Button
-                        type="submit"
-                        size="icon"
-                        className="absolute right-2 rounded-full"
-                        disabled={!input.trim()}
-                    >
-                        <Send className="h-4 w-4" />
-                    </Button>
-                </form>
-            </div>
-        </div>
-        </div>
+        {renderNav()}
+        <Separator />
+        {view === 'add' ? renderAddView() : renderHistoryView()}
+      </div>
     </div>
   );
 }
