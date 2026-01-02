@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,52 +20,63 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-
-interface Club {
-  id: number;
-  name: string;
-  position: string;
-}
-
-interface WorkExperience {
-  id: number;
-  organization: string;
-  employmentType: 'intern' | 'full-time' | '';
-  position: string;
-  startDate: string;
-  endDate: string;
-}
+import { useInformation, Club, WorkExperience } from '@/context/information-context';
+import { useToast } from '@/hooks/use-toast';
 
 export function SpaceClient() {
-  const [clubs, setClubs] = useState<Club[]>([{ id: 1, name: '', position: '' }]);
-  const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>([
-    { id: 1, organization: '', employmentType: '', position: '', startDate: '', endDate: '' },
-  ]);
+  const { currentUser, updateUser } = useInformation();
+  const { toast } = useToast();
+  
+  const [year, setYear] = useState(currentUser.year || '');
+  const [department, setDepartment] = useState(currentUser.department || '');
+  const [clubs, setClubs] = useState<Club[]>(currentUser.clubs || []);
+  const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>(currentUser.workExperience || []);
+
+  useEffect(() => {
+    setYear(currentUser.year || '');
+    setDepartment(currentUser.department || '');
+    setClubs(currentUser.clubs || []);
+    setWorkExperiences(currentUser.workExperience || []);
+  }, [currentUser]);
 
   const addClub = () => {
-    setClubs([...clubs, { id: Date.now(), name: '', position: '' }]);
+    setClubs([...clubs, { id: `club-${Date.now()}`, name: '', position: '' }]);
   };
 
-  const removeClub = (id: number) => {
+  const removeClub = (id: string) => {
     setClubs(clubs.filter(club => club.id !== id));
   };
 
-  const handleClubChange = (id: number, field: 'name' | 'position', value: string) => {
+  const handleClubChange = (id: string, field: 'name' | 'position', value: string) => {
     setClubs(clubs.map(club => club.id === id ? { ...club, [field]: value } : club));
   };
   
   const addWorkExperience = () => {
-    setWorkExperiences([...workExperiences, { id: Date.now(), organization: '', employmentType: '', position: '', startDate: '', endDate: '' }]);
+    setWorkExperiences([...workExperiences, { id: `work-${Date.now()}`, organization: '', employmentType: 'intern', position: '', startDate: '', endDate: '' }]);
   };
 
-  const removeWorkExperience = (id: number) => {
+  const removeWorkExperience = (id: string) => {
     setWorkExperiences(workExperiences.filter(exp => exp.id !== id));
   };
 
-  const handleWorkExperienceChange = (id: number, field: keyof Omit<WorkExperience, 'id'>, value: string) => {
+  const handleWorkExperienceChange = (id: string, field: keyof Omit<WorkExperience, 'id'>, value: string) => {
     setWorkExperiences(workExperiences.map(exp => exp.id === id ? { ...exp, [field]: value } : exp));
   };
 
+  const handleSaveChanges = () => {
+    const updatedUser = {
+      ...currentUser,
+      year,
+      department,
+      clubs,
+      workExperience: workExperiences
+    };
+    updateUser(updatedUser);
+    toast({
+        title: "Success",
+        description: "Your space details have been updated."
+    })
+  }
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
@@ -75,7 +86,7 @@ export function SpaceClient() {
           <TabsTrigger value="created-spaces">Created Spaces</TabsTrigger>
         </TabsList>
         <TabsContent value="my-spaces">
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
             <AccordionItem value="item-1">
               <AccordionTrigger>
                 <span className="font-semibold">Sample College</span>
@@ -89,20 +100,20 @@ export function SpaceClient() {
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="year">Year</Label>
-                            <Input id="year" placeholder="e.g., 2nd Year" />
+                            <Input id="year" placeholder="e.g., 2nd Year" value={year} onChange={e => setYear(e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="department">Department</Label>
-                            <Input id="department" placeholder="e.g., Computer Science" />
+                            <Input id="department" placeholder="e.g., Computer Science" value={department} onChange={e => setDepartment(e.target.value)} />
                         </div>
 
                         <div className="space-y-4">
                             <Label>Clubs</Label>
-                            {clubs.map((club, index) => (
+                            {clubs.map((club) => (
                                 <div key={club.id} className="flex items-center gap-2">
                                     <Input placeholder="Club Name" value={club.name} onChange={e => handleClubChange(club.id, 'name', e.target.value)} />
                                     <Input placeholder="Position" value={club.position} onChange={e => handleClubChange(club.id, 'position', e.target.value)} />
-                                    {clubs.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeClub(club.id)}><Trash2 className="h-4 w-4" /></Button>}
+                                    <Button variant="ghost" size="icon" onClick={() => removeClub(club.id)}><Trash2 className="h-4 w-4" /></Button>
                                 </div>
                             ))}
                             <Button variant="outline" size="sm" onClick={addClub}><PlusCircle className="mr-2 h-4 w-4" /> Add Club</Button>
@@ -110,10 +121,10 @@ export function SpaceClient() {
 
                         <div className="space-y-4">
                             <Label>Work Experience</Label>
-                            {workExperiences.map((exp, index) => (
+                            {workExperiences.map((exp) => (
                                 <div key={exp.id} className="space-y-4 rounded-md border p-4">
                                      <div className="flex justify-end">
-                                        {workExperiences.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeWorkExperience(exp.id)} className="h-6 w-6"><Trash2 className="h-4 w-4" /></Button>}
+                                        <Button variant="ghost" size="icon" onClick={() => removeWorkExperience(exp.id)} className="h-6 w-6"><Trash2 className="h-4 w-4" /></Button>
                                      </div>
                                     <Input placeholder="Organization Name" value={exp.organization} onChange={e => handleWorkExperienceChange(exp.id, 'organization', e.target.value)} />
                                     <div className="flex gap-2">
@@ -134,7 +145,7 @@ export function SpaceClient() {
                             ))}
                              <Button variant="outline" size="sm" onClick={addWorkExperience}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
                         </div>
-                        <Button className="w-full">Save Changes</Button>
+                        <Button className="w-full" onClick={handleSaveChanges}>Save Changes</Button>
                     </CardContent>
                 </Card>
               </AccordionContent>

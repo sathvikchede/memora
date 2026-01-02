@@ -68,7 +68,9 @@ export interface ChatMessage {
 }
 
 
-const USERS: Author[] = [
+const USERS_KEY = 'memora-users';
+
+const initialUsers: Author[] = [
     { 
         id: 'user-1', 
         name: 'Alex', 
@@ -101,24 +103,24 @@ const initialQuestions: Question[] = [
     {
         id: 'q1',
         question: 'What is the best way to learn React?',
-        author: USERS[1],
+        author: initialUsers[1],
         answers: [
             {
                 id: 'a1-1',
                 text: 'The official React documentation is a great place to start. It\'s comprehensive and always up-to-date.',
-                author: USERS[0],
+                author: initialUsers[0],
                 upvotes: 15,
                 downvotes: 1,
                 followUps: [
                     {
                         id: 'f1-1-1',
                         question: 'Thanks! Any specific projects you\'d recommend for beginners?',
-                        author: USERS[1],
+                        author: initialUsers[1],
                         answers: [
                              {
                                 id: 'fa1-1',
                                 text: 'Build a to-do list app. It covers all the basics: state management, props, and event handling.',
-                                author: USERS[2],
+                                author: initialUsers[2],
                                 upvotes: 10,
                                 downvotes: 0,
                                 followUps: [],
@@ -133,7 +135,7 @@ const initialQuestions: Question[] = [
             {
                 id: 'a1-2',
                 text: 'I found that building a small project, like a personal blog or a weather app, helped solidify my understanding.',
-                author: USERS[2],
+                author: initialUsers[2],
                 upvotes: 8,
                 downvotes: 0,
                 followUps: []
@@ -144,14 +146,14 @@ const initialQuestions: Question[] = [
     {
         id: 'q2',
         question: 'How does CSS Grid differ from Flexbox?',
-        author: USERS[2],
+        author: initialUsers[2],
         answers: [],
         relevance: 'medium'
     },
     {
         id: 'q3',
         question: 'What are the benefits of using TypeScript with React?',
-        author: USERS[0],
+        author: initialUsers[0],
         answers: [],
         relevance: 'low'
     }
@@ -167,6 +169,7 @@ interface InformationContextType {
     users: Author[];
     currentUser: Author;
     setCurrentUser: (user: Author) => void;
+    updateUser: (user: Author) => void;
     upvoteAnswer: (questionId: string, answerId: string) => void;
     downvoteAnswer: (questionId: string, answerId: string) => void;
     
@@ -186,7 +189,8 @@ const InformationContext = createContext<InformationContextType | undefined>(und
 export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<Entry[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
-    const [currentUser, setCurrentUserInternal] = useState<Author>(USERS[0]);
+    const [users, setUsers] = useState<Author[]>(initialUsers);
+    const [currentUser, setCurrentUserInternal] = useState<Author>(initialUsers[0]);
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [rememberStates, setRememberStates] = useState<Record<string, boolean>>({});
     const [isReady, setIsReady] = useState(false);
@@ -204,12 +208,19 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
                 setQuestions(initialQuestions);
             }
             
+            const savedUsers = localStorage.getItem(USERS_KEY);
+            if(savedUsers) {
+                setUsers(JSON.parse(savedUsers));
+            } else {
+                setUsers(initialUsers);
+            }
+            
             const savedUser = localStorage.getItem('memora-current-user');
             if(savedUser) {
-                const userToSet = USERS.find(u => u.id === JSON.parse(savedUser).id) || USERS[0];
+                const userToSet = (savedUsers ? JSON.parse(savedUsers) : initialUsers).find(u => u.id === JSON.parse(savedUser).id) || initialUsers[0];
                 setCurrentUserInternal(userToSet);
             } else {
-                setCurrentUserInternal(USERS[0]);
+                setCurrentUserInternal(initialUsers[0]);
             }
 
             const savedChatMessages = localStorage.getItem('memora-chat-messages');
@@ -231,12 +242,20 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => { if (isReady) localStorage.setItem('memora-questions', JSON.stringify(questions)); }, [questions, isReady]);
     useEffect(() => { if (isReady) localStorage.setItem('memora-chat-messages', JSON.stringify(chatMessages)); }, [chatMessages, isReady]);
     useEffect(() => { if (isReady) localStorage.setItem('memora-remember-states', JSON.stringify(rememberStates)); }, [rememberStates, isReady]);
-
+    useEffect(() => { if (isReady) localStorage.setItem(USERS_KEY, JSON.stringify(users)); }, [users, isReady]);
 
     const setCurrentUser = (user: Author) => {
         setCurrentUserInternal(user);
         if (typeof window !== 'undefined') {
             localStorage.setItem('memora-current-user', JSON.stringify(user));
+        }
+    };
+
+    const updateUser = (updatedUser: Author) => {
+        const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+        setUsers(updatedUsers);
+        if (currentUser.id === updatedUser.id) {
+            setCurrentUser(updatedUser);
         }
     };
 
@@ -399,7 +418,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
 
 
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users: USERS, currentUser, setCurrentUser, upvoteAnswer, downvoteAnswer, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, isReady }}>
+        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users, currentUser, setCurrentUser, updateUser, upvoteAnswer, downvoteAnswer, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, isReady }}>
             {children}
         </InformationContext.Provider>
     );
