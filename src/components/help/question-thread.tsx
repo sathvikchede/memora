@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import React, { useEffect, useState } from 'react';
 import { useInformation, Question as QuestionType, Author as AuthorType, Answer as AnswerType } from "@/context/information-context";
+import { cn } from "@/lib/utils";
 
 const ThreadItem = ({ children, author, level = 0 }: { children: React.ReactNode, author: AuthorType, level?: number }) => {
     return (
@@ -42,6 +43,15 @@ interface QuestionThreadProps {
 export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThreadProps) {
     const { questions, currentUser, upvoteAnswer, downvoteAnswer } = useInformation();
     const [isClient, setIsClient] = useState(false);
+    const [expandedAnswers, setExpandedAnswers] = useState<string[]>([]);
+
+    const toggleAnswerExpansion = (answerId: string) => {
+        setExpandedAnswers(prev => 
+            prev.includes(answerId) 
+                ? prev.filter(id => id !== answerId) 
+                : [...prev, answerId]
+        );
+    };
 
     useEffect(() => {
         setIsClient(true);
@@ -64,12 +74,19 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
     const renderAnswers = (question: QuestionType, answers: AnswerType[], level: number) => {
         return answers.map((answer) => {
             const hasFollowUps = answer.followUps && answer.followUps.length > 0;
+            const isExpanded = expandedAnswers.includes(answer.id);
             
             return (
                 <div className="space-y-6 pl-8" key={answer.id}>
                     <ThreadItem author={answer.author} level={level + 1}>
-                        <p className="line-clamp-3">{answer.text}</p>
-                        <Button variant="link" className="p-0 h-auto text-blue-500">Read More</Button>
+                        <p className={cn(!isExpanded && "line-clamp-3")}>{answer.text}</p>
+                        <Button 
+                            variant="ghost" 
+                            className="w-full h-auto text-white mt-2 hover:bg-black/20"
+                            onClick={() => toggleAnswerExpansion(answer.id)}
+                        >
+                            {isExpanded ? 'Read less' : 'Read more'}
+                        </Button>
                         <div className="mt-4 flex">
                             <Button variant="outline" className="flex-1 rounded-r-none" onClick={() => upvoteAnswer(question.id, answer.id)}><ThumbsUp className="mr-2 h-4 w-4" /> {answer.upvotes}</Button>
                             <Button variant="outline" className="flex-1 rounded-l-none" onClick={() => downvoteAnswer(question.id, answer.id)}><ThumbsDown className="mr-2 h-4 w-4" /> {answer.downvotes}</Button>
