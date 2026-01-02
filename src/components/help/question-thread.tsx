@@ -7,8 +7,9 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 import React, { useEffect, useState } from 'react';
 import { useInformation, Question as QuestionType, Author as AuthorType, Answer as AnswerType } from "@/context/information-context";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
-const ThreadItem = ({ children, author, level = 0 }: { children: React.ReactNode, author: AuthorType, level?: number }) => {
+const ThreadItem = ({ children, author, level = 0, onChat }: { children: React.ReactNode, author: AuthorType, level?: number, onChat: () => void }) => {
     return (
         <div className="relative flex items-start gap-4">
             <div className="relative z-10 flex flex-col items-center">
@@ -24,7 +25,7 @@ const ThreadItem = ({ children, author, level = 0 }: { children: React.ReactNode
                         <p className="font-semibold">{author.name}</p>
                         <p className="text-sm text-muted-foreground">{author.department}</p>
                     </div>
-                    <Button variant="outline" size="sm">Chat</Button>
+                    <Button variant="outline" size="sm" onClick={onChat}>Chat</Button>
                 </div>
                 <div className="mt-2 rounded-lg border bg-muted p-4">
                     {children}
@@ -44,6 +45,14 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
     const { questions, currentUser, upvoteAnswer, downvoteAnswer } = useInformation();
     const [isClient, setIsClient] = useState(false);
     const [expandedAnswers, setExpandedAnswers] = useState<string[]>([]);
+    const router = useRouter();
+
+    const handleChat = (userId: string) => {
+        if (userId !== currentUser.id) {
+            router.push(`/chat?userId=${userId}`);
+        }
+    };
+
 
     const toggleAnswerExpansion = (answerId: string) => {
         setExpandedAnswers(prev => 
@@ -78,7 +87,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
             
             return (
                 <div className="space-y-6 pl-8" key={answer.id}>
-                    <ThreadItem author={answer.author} level={level + 1}>
+                    <ThreadItem author={answer.author} level={level + 1} onChat={() => handleChat(answer.author.id)}>
                         <p className={cn(!isExpanded && "line-clamp-3")}>{answer.text}</p>
                         <Button 
                             variant="ghost" 
@@ -109,7 +118,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
 
             return (
                 <div className="space-y-6 pl-8" key={followUp.id}>
-                    <ThreadItem author={followUp.author} level={level + 1}>
+                    <ThreadItem author={followUp.author} level={level + 1} onChat={() => handleChat(followUp.author.id)}>
                         <p>{followUp.question}</p>
                         <div className="flex justify-end mt-4">
                             <Button onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
@@ -125,7 +134,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
 
     return (
         <div className="space-y-6">
-           <ThreadItem author={thread.author} level={0}>
+           <ThreadItem author={thread.author} level={0} onChat={() => handleChat(thread.author.id)}>
                 <p>{thread.question}</p>
                 <div className="flex justify-end mt-4">
                     <Button onClick={() => onAnswer(thread.id, thread.question)}>Answer</Button>

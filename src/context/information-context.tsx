@@ -57,6 +57,17 @@ export interface Entry {
     questionId?: string; // for type 'answer' and 'follow-up'
 }
 
+export interface ChatMessage {
+    id: string;
+    conversationId: string;
+    senderId: string;
+    content: string;
+    timestamp: string;
+    remembered: boolean;
+    attachments?: { type: 'image' | 'file', url: string, name: string }[];
+}
+
+
 const USERS: Author[] = [
     { 
         id: 'user-1', 
@@ -83,7 +94,7 @@ const USERS: Author[] = [
         ],
         workExperience: []
     },
-    { d: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png', year: '2nd Year', clubs: [], workExperience: [] },
+    { id: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png', year: '2nd Year', clubs: [], workExperience: [] },
 ];
 
 const initialQuestions: Question[] = [
@@ -158,6 +169,15 @@ interface InformationContextType {
     setCurrentUser: (user: Author) => void;
     upvoteAnswer: (questionId: string, answerId: string) => void;
     downvoteAnswer: (questionId: string, answerId: string) => void;
+    
+    // Chat
+    chatMessages: ChatMessage[];
+    getChatMessages: (conversationId: string) => ChatMessage[];
+    sendChatMessage: (conversationId: string, content: string, attachments: any[]) => void;
+    rememberStates: Record<string, boolean>;
+    getRememberState: (conversationId: string) => boolean;
+    toggleRememberState: (conversationId: string) => void;
+
     isReady: boolean;
 }
 
@@ -167,6 +187,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<Entry[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentUser, setCurrentUserInternal] = useState<Author>(USERS[0]);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    const [rememberStates, setRememberStates] = useState<Record<string, boolean>>({});
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
@@ -189,21 +211,27 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             } else {
                 setCurrentUserInternal(USERS[0]);
             }
+
+            const savedChatMessages = localStorage.getItem('memora-chat-messages');
+            if(savedChatMessages) {
+                setChatMessages(JSON.parse(savedChatMessages));
+            }
+
+            const savedRememberStates = localStorage.getItem('memora-remember-states');
+            if(savedRememberStates) {
+                setRememberStates(JSON.parse(savedRememberStates));
+            }
+
+
             setIsReady(true);
         }
     }, []);
 
-    useEffect(() => {
-        if (isReady) {
-            localStorage.setItem('memora-entries', JSON.stringify(entries));
-        }
-    }, [entries, isReady]);
+    useEffect(() => { if (isReady) localStorage.setItem('memora-entries', JSON.stringify(entries)); }, [entries, isReady]);
+    useEffect(() => { if (isReady) localStorage.setItem('memora-questions', JSON.stringify(questions)); }, [questions, isReady]);
+    useEffect(() => { if (isReady) localStorage.setItem('memora-chat-messages', JSON.stringify(chatMessages)); }, [chatMessages, isReady]);
+    useEffect(() => { if (isReady) localStorage.setItem('memora-remember-states', JSON.stringify(rememberStates)); }, [rememberStates, isReady]);
 
-     useEffect(() => {
-        if (isReady) {
-            localStorage.setItem('memora-questions', JSON.stringify(questions));
-        }
-    }, [questions, isReady]);
 
     const setCurrentUser = (user: Author) => {
         setCurrentUserInternal(user);
@@ -329,8 +357,49 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         updateVotes(questionId, answerId, 'down');
     };
 
+    // CHAT
+    const getChatMessages = (conversationId: string) => {
+        return chatMessages.filter(m => m.conversationId === conversationId);
+    }
+
+    const sendChatMessage = (conversationId: string, content: string, attachments: any[]) => {
+        const isRemembering = getRememberState(conversationId);
+        const newMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            conversationId,
+            senderId: currentUser.id,
+            content,
+            timestamp: new Date().toISOString(),
+            remembered: isRemembering,
+            attachments,
+        };
+        setChatMessages(prev => [...prev, newMessage]);
+
+        if (isRemembering && content.trim()) {
+             addEntry({
+                id: `entry-${Date.now()}`,
+                text: content,
+                contributor: currentUser.name,
+                date: new Date().toISOString().split("T")[0],
+                type: 'message',
+            });
+        }
+    };
+    
+    const getRememberState = (conversationId: string) => {
+        return rememberStates[conversationId] ?? true; // Default to on
+    };
+
+    const toggleRememberState = (conversationId: string) => {
+        setRememberStates(prev => ({
+            ...prev,
+            [conversationId]: !(prev[conversationId] ?? true)
+        }));
+    };
+
+
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users: USERS, currentUser, setCurrentUser, upvoteAnswer, downvoteAnswer, isReady }}>
+        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users: USERS, currentUser, setCurrentUser, upvoteAnswer, downvoteAnswer, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, isReady }}>
             {children}
         </InformationContext.Provider>
     );

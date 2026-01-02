@@ -14,13 +14,20 @@ import { Button } from '@/components/ui/button';
 import { useInformation, Author } from '@/context/information-context';
 import { Search } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
+import { useRouter } from 'next/navigation';
 
 interface UserCardProps {
   user: Author;
 }
 
 function UserCard({ user }: UserCardProps) {
-  const fullName = user.name; // name is already call name + surname from context
+  const router = useRouter();
+  const fullName = user.name;
+
+  const handleChatClick = () => {
+    router.push(`/chat?userId=${user.id}`);
+  };
+
   return (
     <Card>
       <CardHeader className="flex-row items-center gap-4">
@@ -34,7 +41,7 @@ function UserCard({ user }: UserCardProps) {
             {user.year} - {user.department}
           </CardDescription>
         </div>
-        <Button>Chat</Button>
+        <Button onClick={handleChatClick}>Chat</Button>
       </CardHeader>
       <CardContent className="space-y-4">
         {user.clubs && user.clubs.length > 0 && (
@@ -67,10 +74,11 @@ function UserCard({ user }: UserCardProps) {
 }
 
 export function PeopleClient() {
-  const { users } = useInformation();
+  const { users, currentUser } = useInformation();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredUsers = users.filter((user) => {
+    if (user.id === currentUser.id) return false;
     const searchString = [
       user.name,
       user.year,
