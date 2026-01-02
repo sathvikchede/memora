@@ -3,11 +3,28 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
+export interface Club {
+  id: string;
+  name: string;
+  position: string;
+}
+
+export interface WorkExperience {
+  id: string;
+  organization: string;
+  employmentType: 'intern' | 'full-time';
+  position: string;
+  startDate: string;
+  endDate: string;
+}
 export interface Author {
     id: string;
     name: string;
     department: string;
     avatar: string;
+    year: string;
+    clubs: Club[];
+    workExperience: WorkExperience[];
 }
 
 export interface Answer {
@@ -41,9 +58,32 @@ export interface Entry {
 }
 
 const USERS: Author[] = [
-    { id: 'user-1', name: 'Alex', department: 'Engineering', avatar: '/avatars/alex.png' },
-    { id: 'user-2', name: 'Ben', department: 'Product', avatar: '/avatars/ben.png' },
-    { id: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png' },
+    { 
+        id: 'user-1', 
+        name: 'Alex', 
+        department: 'Engineering', 
+        avatar: '/avatars/alex.png',
+        year: '3rd Year',
+        clubs: [
+            { id: 'c1', name: 'AI Club', position: 'President' },
+            { id: 'c2', name: 'Debate Club', position: 'Member' },
+        ],
+        workExperience: [
+            { id: 'w1', organization: 'Google', employmentType: 'intern', position: 'Software Engineer Intern', startDate: '01062023', endDate: '31082023' }
+        ]
+    },
+    { 
+        id: 'user-2', 
+        name: 'Ben', 
+        department: 'Product', 
+        avatar: '/avatars/ben.png',
+        year: '4th Year',
+        clubs: [
+            { id: 'c3', name: 'Entrepreneurship Club', position: 'Vice President' }
+        ],
+        workExperience: []
+    },
+    { d: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png', year: '2nd Year', clubs: [], workExperience: [] },
 ];
 
 const initialQuestions: Question[] = [
@@ -144,7 +184,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             
             const savedUser = localStorage.getItem('memora-current-user');
             if(savedUser) {
-                setCurrentUserInternal(JSON.parse(savedUser));
+                const userToSet = USERS.find(u => u.id === JSON.parse(savedUser).id) || USERS[0];
+                setCurrentUserInternal(userToSet);
             } else {
                 setCurrentUserInternal(USERS[0]);
             }
