@@ -41,6 +41,8 @@ const prompt = ai.definePrompt({
   input: {schema: AnswerUserQueryInputSchema},
   output: {schema: AnswerUserQueryOutputSchema},
   prompt: `You are an AI assistant that answers user queries based on provided summaries and sources.
+  
+  When generating your answer, please format the text with a clear structure. Use headings, subheadings, and lists (bulleted or numbered) where it makes sense to improve readability.
 
   Summaries:
   {{#each summaries}}
