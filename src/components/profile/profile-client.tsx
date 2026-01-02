@@ -18,7 +18,7 @@ export function ProfileClient() {
   return (
     <div className="container mx-auto max-w-4xl py-8">
       <div className="flex flex-col items-center justify-center space-y-4">
-        <Avatar className="h-32 w-32">
+        <Avatar className="h-24 w-24">
           <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
           <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
         </Avatar>
