@@ -26,8 +26,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useInformation, Entry } from "@/context/information-context";
-import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
+import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
+
 
 interface UploadedFile {
   id: string;
@@ -42,7 +43,6 @@ export function AddClient() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
   const formId = useId();
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -50,22 +50,61 @@ export function AddClient() {
   const recognitionRef = useRef<any>(null);
   const [view, setView] = useState<'add' | 'history'>('add');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
 
-  const handleSend = () => {
-    if (input.trim()) {
-      const randomStatus = ['success', 'adjusted', 'mismatch'][Math.floor(Math.random() * 3)] as 'success' | 'adjusted' | 'mismatch';
-      const newEntry: Entry = {
-        id: `entry-${Date.now()}`,
-        text: input,
-        contributor: isAnonymous ? "Anonymous" : currentUser.name,
-        date: new Date().toISOString().split("T")[0],
-        type: 'add',
-        status: randomStatus
-      };
-      addEntry(newEntry);
+  const handleSend = async () => {
+    if (input.trim() || uploadedFiles.length > 0) {
+      setIsSending(true);
+
+      if (uploadedFiles.length > 0) {
+        // Process file uploads
+        for (const file of uploadedFiles) {
+           const multimediaInput: ProcessMultimediaInputInput = {
+                mediaDataUri: file.url,
+                additionalText: input.trim()
+            };
+            try {
+                const result = await processMultimediaInput(multimediaInput);
+                const newEntry: Entry = {
+                    id: `entry-${Date.now()}`,
+                    text: result.summary,
+                    contributor: isAnonymous ? "Anonymous" : currentUser.name,
+                    date: new Date().toISOString().split("T")[0],
+                    type: 'add',
+                    status: 'success'
+                };
+                addEntry(newEntry);
+            } catch (error) {
+                console.error("Error processing file:", error);
+                 const errorEntry: Entry = {
+                    id: `entry-${Date.now()}`,
+                    text: `Failed to process file: ${file.name}`,
+                    contributor: isAnonymous ? "Anonymous" : currentUser.name,
+                    date: new Date().toISOString().split("T")[0],
+                    type: 'add',
+                    status: 'mismatch' // or some other error status
+                };
+                addEntry(errorEntry);
+            }
+        }
+      } else if (input.trim()) {
+        // Process text-only input
+        const randomStatus = ['success', 'adjusted', 'mismatch'][Math.floor(Math.random() * 3)] as 'success' | 'adjusted' | 'mismatch';
+        const newEntry: Entry = {
+          id: `entry-${Date.now()}`,
+          text: input,
+          contributor: isAnonymous ? "Anonymous" : currentUser.name,
+          date: new Date().toISOString().split("T")[0],
+          type: 'add',
+          status: randomStatus
+        };
+        addEntry(newEntry);
+      }
+
       setInput("");
       setUploadedFiles([]);
+      setIsSending(false);
     }
   };
 
@@ -212,7 +251,7 @@ export function AddClient() {
           <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex-1" aria-label="Upload">
+                <Button variant="ghost" className="flex-1" aria-label="Upload" disabled={isSending}>
                   <Upload />
                   <span className="hidden md:ml-2 md:inline">Upload</span>
                 </Button>
@@ -224,12 +263,12 @@ export function AddClient() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant={isAnonymous ? "secondary" : "ghost"} className="flex-1" aria-label="Anonymous" onClick={() => setIsAnonymous(!isAnonymous)}>
+            <Button variant={isAnonymous ? "secondary" : "ghost"} className="flex-1" aria-label="Anonymous" onClick={() => setIsAnonymous(!isAnonymous)} disabled={isSending}>
               <UserX />
               <span className="hidden md:ml-2 md:inline">Anonymous</span>
             </Button>
 
-            <Button variant={isRecording ? "secondary" : "ghost"} className="flex-1" aria-label="Voice Input" onClick={handleVoiceInput}>
+            <Button variant={isRecording ? "secondary" : "ghost"} className="flex-1" aria-label="Voice Input" onClick={handleVoiceInput} disabled={isSending}>
               <Mic />
               <span className="hidden md:ml-2 md:inline">Voice</span>
             </Button>
@@ -252,14 +291,19 @@ export function AddClient() {
               placeholder="Add information to Memora..."
               className="min-h-[48px] resize-none pr-12 rounded-full py-3.5"
               rows={1}
+              disabled={isSending}
             />
             <Button
               type="submit"
               size="icon"
               className="absolute right-2 rounded-full"
-              disabled={!input.trim() && uploadedFiles.length === 0}
+              disabled={(!input.trim() && uploadedFiles.length === 0) || isSending}
             >
-              <Send className="h-4 w-4" />
+              {isSending ? (
+                  <div className="h-4 w-4 border-2 border-background/80 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                  <Send className="h-4 w-4" />
+              )}
             </Button>
           </form>
         </div>
