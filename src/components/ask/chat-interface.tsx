@@ -125,7 +125,12 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
             const queryInput: AnswerUserQueryInput = {
                 query: userMessageText,
                 summaries: entries.map(e => e.text),
-                sources: entries, // Pass the whole entry object
+                sources: entries.map(e => ({
+                    contributor: e.contributor,
+                    rawInformation: e.text,
+                    date: e.date,
+                    type: e.type,
+                })),
             };
 
             try {
@@ -264,7 +269,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                     : "bg-muted"
                 )}
               >
-                <p className="text-sm p-3">{message.text}</p>
+                <p className="text-sm p-3 whitespace-pre-wrap">{message.text}</p>
                 {message.showActions && (
                     <div className="mt-2 flex items-center justify-stretch gap-px border-t">
                         {message.text.includes("enough information") ? (
