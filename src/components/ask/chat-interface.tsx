@@ -9,7 +9,6 @@ import {
   Mic,
   Image as ImageIcon,
   FileText,
-  UserX,
   Camera,
   X
 } from "lucide-react";
@@ -23,18 +22,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useInformation } from "@/context/information-context";
+import { useInformation, Message } from "@/context/information-context";
 import { answerUserQuery, AnswerUserQueryInput } from "@/ai/flows/answer-user-queries-with-sources";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
 
-interface Message {
-  id: string;
-  text: string;
-  sender: "user" | "ai";
-  showActions?: boolean;
-}
-
 interface ChatInterfaceProps {
+  chatId?: string | null;
+  onNewChat?: (chatId: string) => void;
   onShowSources?: () => void;
   onPost?: (question: string) => void;
 }
@@ -50,20 +44,30 @@ const initialMessages: Message[] = [
     { id: 'ai-1', text: "Hello! How can I help you today?", sender: 'ai' },
 ];
 
-export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
+export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: ChatInterfaceProps) {
+  const { entries, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem } = useInformation();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
   const formId = useId();
-  const { entries, addEntry } = useInformation();
   const [isThinking, setIsThinking] = useState(false);
-  const lastUserMessage = messages.filter(m => m.sender === 'user').pop();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (chatId) {
+      const historyItem = getChatHistoryItem(chatId);
+      if (historyItem) {
+        setMessages(historyItem.messages);
+      }
+    } else {
+      setMessages(initialMessages);
+    }
+  }, [chatId, getChatHistoryItem]);
 
 
   const handleSend = async () => {
@@ -71,11 +75,25 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
         setMessages(prev => prev.map(m => ({ ...m, showActions: false })));
         const userMessageText = input.trim();
         const userMessage: Message = { id: `user-${Date.now()}`, text: userMessageText, sender: 'user' };
+        
+        let currentChatId = chatId;
+        // If it's a new chat, create a history item first
+        if (!currentChatId) {
+            const newHistoryItem = addHistoryItem(userMessageText, [userMessage]);
+            currentChatId = newHistoryItem.id;
+            if (onNewChat) {
+                onNewChat(currentChatId);
+            }
+        } else {
+             addMessageToHistory(currentChatId, userMessage);
+        }
+
         setMessages(prev => [...prev, userMessage]);
         setInput("");
         setIsThinking(true);
         
         let aiResponseText = '';
+        let sourcesForAnswer: any[] = [];
 
         if (uploadedFiles.length > 0) {
             const file = uploadedFiles[0];
@@ -85,21 +103,22 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
             };
             try {
                 const result = await processMultimediaInput(multimediaInput);
-                addEntry({
+                const newEntry = {
                     id: `entry-${Date.now()}`,
                     text: result.summary,
                     contributor: 'You (via upload)',
                     date: new Date().toISOString().split("T")[0],
-                    type: 'add'
-                });
+                    type: 'add' as const,
+                };
+                addEntry(newEntry);
                 aiResponseText = `I've processed the content of "${file.name}". Here's a summary: ${result.summary}\n\nHow can I help you with this information?`;
+                sourcesForAnswer = [newEntry];
             } catch(error) {
                 console.error("Error processing multimedia:", error);
                 aiResponseText = `Sorry, I couldn't process the file ${file.name}.`;
             }
             setUploadedFiles([]);
         } else if (entries.length === 0) {
-            // Simulate AI response
             aiResponseText = `This is a simulated AI response to: "${userMessageText}". I don't have enough information yet.`;
         } else {
             const queryInput: AnswerUserQueryInput = {
@@ -116,6 +135,7 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
             try {
                 const result = await answerUserQuery(queryInput);
                 aiResponseText = result.answer;
+                sourcesForAnswer = result.sources;
             } catch (error) {
                 console.error("Error calling AI flow:", error);
                 aiResponseText = "Sorry, I encountered an error while processing your request.";
@@ -128,6 +148,10 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
             sender: 'ai', 
             showActions: true 
         };
+
+        if (currentChatId) {
+            addMessageToHistory(currentChatId, aiResponse, sourcesForAnswer);
+        }
         setMessages(prev => [...prev, aiResponse]);
         setIsThinking(false);
     }
@@ -215,6 +239,8 @@ export function ChatInterface({ onShowSources, onPost }: ChatInterfaceProps) {
   }, []);
 
   const atBottom = messages.length > 2;
+  const lastUserMessage = messages.filter(m => m.sender === 'user').pop();
+
 
   return (
     <div className={cn("flex h-full flex-col", { "justify-center": !atBottom })}>

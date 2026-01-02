@@ -1,33 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { History, PlusCircle, ChevronLeft, Edit } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
-import { useInformation } from "@/context/information-context";
-import { useRouter } from "next/navigation";
-
+import { useInformation, ChatHistoryItem } from "@/context/information-context";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type View = "new-chat" | "history" | "chat-detail" | "sources";
-type HistoryItem = { id: string; title: string; date: string };
-
-const fakeHistory: HistoryItem[] = [
-  { id: "1", title: "Impact of AI on modern education", date: "2024-07-28" },
-  { id: "2", title: "Best practices for React development", date: "2024-07-27" },
-  { id: "3", title: "Quantum computing explained", date: "2024-07-25" },
-];
-
 
 export function AskClient() {
   const [view, setView] = useState<View>("new-chat");
-  const [activeChat, setActiveChat] = useState<HistoryItem | null>(null);
-  const { entries } = useInformation();
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const { chatHistory, getChatHistoryItem } = useInformation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const viewParam = searchParams.get('view') as View;
+    const idParam = searchParams.get('id');
+
+    if (viewParam) {
+      setView(viewParam);
+    }
+    if (idParam) {
+      setActiveChatId(idParam);
+    }
+  }, [searchParams]);
+
+  const navigate = (newView: View, params?: Record<string, string | undefined>) => {
+    const newParams = new URLSearchParams();
+    newParams.set('view', newView);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) newParams.set(key, value);
+      });
+    } else {
+        newParams.delete('id');
+    }
+    router.push(`/ask?${newParams.toString()}`);
+  };
+
 
   const handlePost = (question: string) => {
     router.push(`/help?view=post-question&question=${encodeURIComponent(question)}`);
   };
+
+  const activeChat = activeChatId ? getChatHistoryItem(activeChatId) : null;
 
   const renderNav = () => {
     let title = "";
@@ -38,27 +58,27 @@ export function AskClient() {
         case "history":
             title = "History";
             showBackButton = true;
-            backAction = () => setView("new-chat");
+            backAction = () => navigate("new-chat");
             break;
         case "chat-detail":
-            title = activeChat?.title || "";
+            title = activeChat?.title || "Chat";
             showBackButton = true;
-            backAction = () => { setView("history"); setActiveChat(null); };
+            backAction = () => navigate("history");
             break;
         case "sources":
             title = "Sources";
             showBackButton = true;
-            backAction = () => setView("chat-detail");
+            backAction = () => navigate("chat-detail", { id: activeChatId! });
             break;
     }
     
     if (!showBackButton) {
         return (
             <>
-              <Button variant="ghost" className="w-1/2" onClick={() => setView("new-chat")}>
+              <Button variant="ghost" className="w-1/2" onClick={() => navigate("new-chat")}>
                 <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
               </Button>
-              <Button variant="ghost" className="w-1/2" onClick={() => setView("history")}>
+              <Button variant="ghost" className="w-1/2" onClick={() => navigate("history")}>
                 <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
               </Button>
             </>
@@ -73,7 +93,7 @@ export function AskClient() {
                 <span className="hidden md:inline">Back</span>
             </Button>
           </div>
-          <span className="truncate px-2 text-center font-bold text-lg">{title}</span>
+          <span className="truncate px-16 text-center font-bold text-lg">{title}</span>
         </div>
     );
   };
@@ -83,20 +103,27 @@ export function AskClient() {
         case "history":
             return (
                 <div className="divide-y divide-border">
-                    {fakeHistory.map(item => (
-                        <div key={item.id} onClick={() => { setView("chat-detail"); setActiveChat(item);}} className="flex cursor-pointer items-center justify-between p-4 hover:bg-accent">
+                    {chatHistory.map(item => (
+                        <div key={item.id} onClick={() => navigate("chat-detail", { id: item.id })} className="flex cursor-pointer items-center justify-between p-4 hover:bg-accent">
                             <span className="font-medium">{item.title}</span>
-                            <span className="text-sm text-muted-foreground">{item.date}</span>
+                            <span className="text-sm text-muted-foreground">{new Date(item.date).toLocaleDateString()}</span>
                         </div>
                     ))}
+                    {chatHistory.length === 0 && <p className="p-4 text-center text-muted-foreground">No chat history yet.</p>}
                 </div>
             );
         case "chat-detail":
-            return <ChatInterface key={activeChat?.id} onShowSources={() => setView('sources')} onPost={handlePost} />;
+            return <ChatInterface 
+                        key={activeChatId}
+                        chatId={activeChatId}
+                        onShowSources={() => navigate('sources', { id: activeChatId! })} 
+                        onPost={handlePost} 
+                    />;
         case "sources":
+            const sourcesForChat = activeChat ? chatHistory.find(c => c.id === activeChat.id)?.sources || [] : [];
             return (
                 <div className="divide-y divide-border p-4">
-                    {entries.map((source, index) => (
+                    {sourcesForChat.map((source, index) => (
                         <div key={index} className="py-4">
                             <div className="flex justify-between text-sm text-muted-foreground">
                                 <span>{source.type}</span>
@@ -110,10 +137,16 @@ export function AskClient() {
                             </div>
                         </div>
                     ))}
+                    {sourcesForChat.length === 0 && <p className="p-4 text-center text-muted-foreground">No sources for this answer.</p>}
                 </div>
             );
         default:
-            return <ChatInterface key="new-chat" onShowSources={() => setView('sources')} onPost={handlePost} />;
+            return <ChatInterface 
+                      key="new-chat" 
+                      onNewChat={(id) => navigate("chat-detail", { id })}
+                      onShowSources={() => {}} // This won't be called in new chat
+                      onPost={handlePost} 
+                    />;
     }
   };
 

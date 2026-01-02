@@ -57,6 +57,22 @@ export interface Entry {
     questionId?: string; // for type 'answer' and 'follow-up'
 }
 
+export interface Message {
+  id: string;
+  text: string;
+  sender: "user" | "ai";
+  showActions?: boolean;
+}
+
+export interface ChatHistoryItem {
+    id: string;
+    title: string;
+    date: string;
+    messages: Message[];
+    sources: any[];
+}
+
+
 export interface ChatMessage {
     id: string;
     conversationId: string;
@@ -183,6 +199,12 @@ interface InformationContextType {
     getRememberState: (conversationId: string) => boolean;
     toggleRememberState: (conversationId: string) => void;
 
+    // Ask History
+    chatHistory: ChatHistoryItem[];
+    addHistoryItem: (title: string, messages: Message[], sources?: any[]) => ChatHistoryItem;
+    addMessageToHistory: (chatId: string, message: Message, sources?: any[]) => void;
+    getChatHistoryItem: (chatId: string) => ChatHistoryItem | undefined;
+
     isReady: boolean;
 }
 
@@ -195,6 +217,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [currentUser, setCurrentUserInternal] = useState<Author>(initialUsers[0]);
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [rememberStates, setRememberStates] = useState<Record<string, boolean>>({});
+    const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
@@ -247,6 +270,11 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
                 setRememberStates(JSON.parse(savedRememberStates));
             }
 
+            const savedChatHistory = localStorage.getItem('memora-chat-history');
+            if (savedChatHistory) {
+                setChatHistory(JSON.parse(savedChatHistory));
+            }
+
 
             setIsReady(true);
         }
@@ -257,6 +285,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => { if (isReady) localStorage.setItem('memora-chat-messages', JSON.stringify(chatMessages)); }, [chatMessages, isReady]);
     useEffect(() => { if (isReady) localStorage.setItem('memora-remember-states', JSON.stringify(rememberStates)); }, [rememberStates, isReady]);
     useEffect(() => { if (isReady) localStorage.setItem(USERS_KEY, JSON.stringify(users)); }, [users, isReady]);
+    useEffect(() => { if (isReady) localStorage.setItem('memora-chat-history', JSON.stringify(chatHistory));}, [chatHistory, isReady]);
+
 
     const setCurrentUser = (user: Author) => {
         setCurrentUserInternal(user);
@@ -430,9 +460,44 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         }));
     };
 
+    // ASK HISTORY
+    const getChatHistoryItem = (chatId: string) => {
+        return chatHistory.find(item => item.id === chatId);
+    };
+
+    const addHistoryItem = (title: string, messages: Message[], sources: any[] = []): ChatHistoryItem => {
+        const newItem: ChatHistoryItem = {
+            id: `chat-${Date.now()}`,
+            title,
+            date: new Date().toISOString(),
+            messages,
+            sources,
+        };
+        setChatHistory(prev => [newItem, ...prev]);
+        return newItem;
+    };
+
+    const addMessageToHistory = (chatId: string, message: Message, sources?: any[]) => {
+        setChatHistory(prev => prev.map(item => {
+            if (item.id === chatId) {
+                const newMessages = [...item.messages, message];
+                let newSources = item.sources;
+                if (sources && message.sender === 'ai') {
+                    newSources = sources;
+                }
+                // Update title if it's the first user message of a new chat
+                if (item.messages.length === 1 && item.messages[0].sender === 'user') {
+                     return { ...item, messages: newMessages, sources: newSources, title: item.messages[0].text };
+                }
+                return { ...item, messages: newMessages, sources: newSources };
+            }
+            return item;
+        }));
+    };
+
 
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users, currentUser, setCurrentUser, updateUser, upvoteAnswer, downvoteAnswer, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, isReady }}>
+        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users, currentUser, setCurrentUser, updateUser, upvoteAnswer, downvoteAnswer, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, chatHistory, addHistoryItem, addMessageToHistory, getChatHistoryItem, isReady }}>
             {children}
         </InformationContext.Provider>
     );
