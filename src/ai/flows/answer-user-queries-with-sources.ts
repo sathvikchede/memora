@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -11,26 +12,23 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const SourceSchema = z.object({
+  contributor: z.string().describe('The contributor of the information.'),
+  rawInformation: z.string().describe('The raw information contributed.'),
+  date: z.string().describe('The date of the information input.'),
+  type: z.string().describe('The type of information entry (add, help, message).'),
+});
+
 const AnswerUserQueryInputSchema = z.object({
   query: z.string().describe('The user query.'),
   summaries: z.array(z.string()).describe('The relevant summaries.'),
-  sources: z.array(z.object({
-    contributor: z.string().describe('The contributor of the information.'),
-    rawInformation: z.string().describe('The raw information contributed.'),
-    date: z.string().describe('The date of the information input.'),
-    type: z.string().describe('The type of information entry (add, help, message).'),
-  })).describe('The sources of the summaries.'),
+  sources: z.array(SourceSchema).describe('The sources of the summaries.'),
 });
 export type AnswerUserQueryInput = z.infer<typeof AnswerUserQueryInputSchema>;
 
 const AnswerUserQueryOutputSchema = z.object({
   answer: z.string().describe('The answer to the user query.'),
-  sources: z.array(z.object({
-    contributor: z.string().describe('The contributor of the information.'),
-    rawInformation: z.string().describe('The raw information contributed.'),
-    date: z.string().describe('The date of the information input.'),
-    type: z.string().describe('The type of information entry (add, help, message).'),
-  })).describe('The sources used to generate the answer.'),
+  sources: z.array(SourceSchema).describe('The sources used to generate the answer.'),
 });
 export type AnswerUserQueryOutput = z.infer<typeof AnswerUserQueryOutputSchema>;
 
@@ -69,7 +67,12 @@ const answerUserQueryFlow = ai.defineFlow(
     const {output} = await prompt(input);
     return {
       answer: output?.answer || 'No answer could be generated based on the provided information.',
-      sources: input.sources,
+      sources: input.sources.map(s => ({
+        contributor: s.contributor,
+        rawInformation: s.rawInformation,
+        date: s.date,
+        type: s.type,
+      })),
     };
   }
 );

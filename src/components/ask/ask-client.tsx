@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -129,7 +130,7 @@ export function AskClient() {
                                 <span>{source.type}</span>
                                 <span>{source.date}</span>
                             </div>
-                            <p className="my-2">{source.text}</p>
+                            <p className="my-2">{source.rawInformation}</p>
                             <div className="text-right">
                                 <Button variant="link" className="p-0 h-auto text-muted-foreground">
                                     - {source.contributor}

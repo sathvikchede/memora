@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useId } from "react";
@@ -124,12 +125,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
             const queryInput: AnswerUserQueryInput = {
                 query: userMessageText,
                 summaries: entries.map(e => e.text),
-                sources: entries.map(e => ({
-                    contributor: e.contributor,
-                    rawInformation: e.text,
-                    date: e.date,
-                    type: e.type,
-                })),
+                sources: entries, // Pass the whole entry object
             };
 
             try {
