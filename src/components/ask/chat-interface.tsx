@@ -45,7 +45,7 @@ const initialMessages: Message[] = [
 ];
 
 export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: ChatInterfaceProps) {
-  const { entries, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem } = useInformation();
+  const { entries, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem, currentUser } = useInformation();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -106,7 +106,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                 const newEntry = {
                     id: `entry-${Date.now()}`,
                     text: result.summary,
-                    contributor: 'You (via upload)',
+                    contributor: currentUser.name,
                     date: new Date().toISOString().split("T")[0],
                     type: 'add' as const,
                 };
@@ -119,7 +119,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
             }
             setUploadedFiles([]);
         } else if (entries.length === 0) {
-            aiResponseText = `This is a simulated AI response to: "${userMessageText}". I don't have enough information yet.`;
+            aiResponseText = `I don't have enough information yet. You can add information in the "Add" tab or by answering questions in the "Help" tab.`;
         } else {
             const queryInput: AnswerUserQueryInput = {
                 query: userMessageText,

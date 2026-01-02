@@ -36,7 +36,7 @@ interface UploadedFile {
 }
 
 export function AddClient() {
-  const { entries, addEntry } = useInformation();
+  const { entries, addEntry, currentUser } = useInformation();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
@@ -48,6 +48,7 @@ export function AddClient() {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
   const [view, setView] = useState<'add' | 'history'>('add');
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
 
   const handleSend = () => {
@@ -56,7 +57,7 @@ export function AddClient() {
       const newEntry: Entry = {
         id: `entry-${Date.now()}`,
         text: input,
-        contributor: "You",
+        contributor: isAnonymous ? "Anonymous" : currentUser.name,
         date: new Date().toISOString().split("T")[0],
         type: 'add',
         status: randomStatus
@@ -161,14 +162,17 @@ export function AddClient() {
 
   const renderNav = () => {
     return (
-        <>
-            <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask')}>
-              <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
-            </Button>
-            <Button variant="ghost" className="w-1/2" onClick={() => router.push('/ask?view=history')}>
-              <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
-            </Button>
-        </>
+        <div className="relative flex w-full items-center justify-center">
+            <span className="truncate px-16 text-center font-bold text-lg">Add.</span>
+             <div className="absolute right-0 flex">
+                <Button variant="ghost" onClick={() => router.push('/ask')}>
+                    <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
+                </Button>
+                <Button variant="ghost" onClick={() => router.push('/ask?view=history')}>
+                    <History className="md:mr-2" /> <span className="hidden md:inline">History</span>
+                </Button>
+            </div>
+        </div>
     );
   };
 
@@ -183,6 +187,9 @@ export function AddClient() {
                 <div className="space-y-4 py-4">
                     {entriesForAdd.map(entry => (
                         <div key={entry.id} className="space-y-2">
+                             {entry.contributor === 'Anonymous' && (
+                                <p className="text-xs font-semibold text-muted-foreground">Anonymous</p>
+                            )}
                             <div className="rounded-md border p-4">{entry.text}</div>
                             {entry.status && (
                                 <Alert variant={entry.status === 'mismatch' ? 'destructive' : 'default'} className="border-0">
@@ -243,7 +250,7 @@ export function AddClient() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     
-                    <Button variant="ghost" className="flex-1" aria-label="Anonymous">
+                    <Button variant={isAnonymous ? "secondary" : "ghost"} className="flex-1" aria-label="Anonymous" onClick={() => setIsAnonymous(!isAnonymous)}>
                         <UserX />
                         <span className="hidden md:ml-2 md:inline">Anonymous</span>
                     </Button>
