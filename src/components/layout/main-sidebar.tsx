@@ -26,7 +26,7 @@ const MIcon = () => (
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="h-8 w-8 shrink-0"
+      className="h-10 w-10 shrink-0"
     >
       <path
         d="M8 15V9H6V15H8Z"
@@ -68,7 +68,7 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
     <>
       <SidebarHeader className="p-4">
         {state === "expanded" ? (
-          <h1 className="text-xl font-bold">memora.</h1>
+          <h1 className="text-2xl font-bold">memora.</h1>
         ) : (
           <MIcon />
         )}
