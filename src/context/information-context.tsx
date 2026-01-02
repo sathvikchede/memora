@@ -97,6 +97,8 @@ const initialUsers: Author[] = [
         workExperience: []
     },
     { id: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png', year: '2nd Year', clubs: [], workExperience: [] },
+    { id: 'user-4', name: 'David', department: 'Marketing', avatar: '/avatars/david.png', year: '1st Year', clubs: [], workExperience: [] },
+    { id: 'user-5', name: 'Eva', department: 'Data Science', avatar: '/avatars/eva.png', year: '3rd Year', clubs: [{id: 'c4', name: 'Coding Club', position: 'Treasurer'}], workExperience: [] },
 ];
 
 const initialQuestions: Question[] = [
