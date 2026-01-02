@@ -28,7 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useInformation, Entry } from "@/context/information-context";
 import { Separator } from "@/components/ui/separator";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
-
+import { summarizeUserInformation, SummarizeUserInformationInput } from "@/ai/flows/summarize-user-information";
 
 interface UploadedFile {
   id: string;
@@ -58,7 +58,6 @@ export function AddClient() {
       setIsSending(true);
 
       if (uploadedFiles.length > 0) {
-        // Process file uploads
         for (const file of uploadedFiles) {
            const multimediaInput: ProcessMultimediaInputInput = {
                 mediaDataUri: file.url,
@@ -83,23 +82,39 @@ export function AddClient() {
                     contributor: isAnonymous ? "Anonymous" : currentUser.name,
                     date: new Date().toISOString().split("T")[0],
                     type: 'add',
-                    status: 'mismatch' // or some other error status
+                    status: 'mismatch'
                 };
                 addEntry(errorEntry);
             }
         }
       } else if (input.trim()) {
-        // Process text-only input
-        const randomStatus = ['success', 'adjusted', 'mismatch'][Math.floor(Math.random() * 3)] as 'success' | 'adjusted' | 'mismatch';
-        const newEntry: Entry = {
-          id: `entry-${Date.now()}`,
-          text: input,
-          contributor: isAnonymous ? "Anonymous" : currentUser.name,
-          date: new Date().toISOString().split("T")[0],
-          type: 'add',
-          status: randomStatus
+        const summarizeInput: SummarizeUserInformationInput = {
+          information: input.trim(),
         };
-        addEntry(newEntry);
+
+        try {
+          const result = await summarizeUserInformation(summarizeInput);
+          const newEntry: Entry = {
+            id: result.summaryId || `entry-${Date.now()}`,
+            text: result.summary,
+            contributor: isAnonymous ? "Anonymous" : currentUser.name,
+            date: new Date().toISOString().split("T")[0],
+            type: 'add',
+            status: 'success'
+          };
+          addEntry(newEntry);
+        } catch (error) {
+          console.error("Error summarizing information:", error);
+          const errorEntry: Entry = {
+            id: `entry-${Date.now()}`,
+            text: "Failed to summarize and add your entry.",
+            contributor: isAnonymous ? "Anonymous" : currentUser.name,
+            date: new Date().toISOString().split("T")[0],
+            type: 'add',
+            status: 'mismatch'
+          };
+          addEntry(errorEntry);
+        }
       }
 
       setInput("");
@@ -199,6 +214,8 @@ export function AddClient() {
   }
 
   const entriesForAdd = entries.filter(e => e.type === 'add');
+  const latestEntry = entriesForAdd.length > 0 ? entriesForAdd[entriesForAdd.length - 1] : null;
+
 
   const renderNav = () => {
     return (
@@ -215,7 +232,25 @@ export function AddClient() {
 
   const renderAddView = () => (
     <>
-      <div className="flex-1"></div>
+      <ScrollArea className="flex-1">
+        <div className="py-4 pr-4">
+          {latestEntry && (
+            <div className="space-y-2">
+              {latestEntry.contributor === 'Anonymous' && (
+                <p className="text-xs font-semibold text-muted-foreground">Anonymous</p>
+              )}
+              <div className="rounded-md border p-4">{latestEntry.text}</div>
+              {latestEntry.status && (
+                <Alert variant={latestEntry.status === 'mismatch' ? 'destructive' : 'default'} className="border-0">
+                  <AlertDescription className="text-muted-foreground">
+                    {getStatusMessage(latestEntry.status)}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+        </div>
+      </ScrollArea>
       <div className="flex-shrink-0 bg-background py-4">
         <div className="space-y-2">
           {uploadedFiles.length > 0 && (
@@ -314,7 +349,7 @@ export function AddClient() {
   const renderHistoryView = () => (
     <ScrollArea className="flex-1 pr-4">
       <div className="space-y-4 py-4">
-        {entriesForAdd.map(entry => (
+        {entriesForAdd.slice().reverse().map(entry => (
           <div key={entry.id} className="space-y-2">
             {entry.contributor === 'Anonymous' && (
               <p className="text-xs font-semibold text-muted-foreground">Anonymous</p>
@@ -348,3 +383,5 @@ export function AddClient() {
     </div>
   );
 }
+
+    
