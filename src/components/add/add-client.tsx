@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useId } from "react";
@@ -162,9 +163,8 @@ export function AddClient() {
 
   const renderNav = () => {
     return (
-        <div className="relative flex w-full items-center justify-center">
-            <span className="truncate px-16 text-center font-bold text-lg">Add.</span>
-             <div className="absolute right-0 flex">
+        <div className="relative flex w-full items-center justify-end">
+            <div className="flex">
                 <Button variant="ghost" onClick={() => router.push('/ask')}>
                     <PlusCircle className="md:mr-2" /> <span className="hidden md:inline">New Chat</span>
                 </Button>
