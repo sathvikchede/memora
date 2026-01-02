@@ -8,8 +8,6 @@ import {
 } from "@/components/ui/sidebar";
 import { MainSidebar } from "@/components/layout/main-sidebar";
 import { Header } from "@/components/layout/header";
-import { useUser } from "@/firebase";
-import { useEffect } from "react";
 import { InformationProvider } from "@/context/information-context";
 
 const TABS: { [key: string]: string } = {
@@ -29,22 +27,6 @@ export default function MainLayout({
 }) {
   const pathname = usePathname();
   const activeTab = TABS[pathname] || "";
-  // const { user, isUserLoading } = useUser();
-  // const router = useRouter();
-
-  // useEffect(() => {
-  //   if (!isUserLoading && !user) {
-  //     router.push('/login');
-  //   }
-  // }, [user, isUserLoading, router]);
-
-  // if (isUserLoading) {
-  //   return (
-  //     <div className="flex min-h-screen items-center justify-center">
-  //       <p>Loading...</p>
-  //     </div>
-  //   );
-  // }
 
   return (
     <InformationProvider>
