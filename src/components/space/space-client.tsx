@@ -22,6 +22,8 @@ import { PlusCircle, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useInformation, Club, WorkExperience } from '@/context/information-context';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
 
 export function SpaceClient() {
   const { currentUser, updateUser } = useInformation();
@@ -31,6 +33,8 @@ export function SpaceClient() {
   const [department, setDepartment] = useState(currentUser.department || '');
   const [clubs, setClubs] = useState<Club[]>(currentUser.clubs || []);
   const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>(currentUser.workExperience || []);
+  const [activeAccordion, setActiveAccordion] = useState<string | undefined>("item-1");
+
 
   useEffect(() => {
     setYear(currentUser.year || '');
@@ -86,10 +90,23 @@ export function SpaceClient() {
           <TabsTrigger value="created-spaces">Created Spaces</TabsTrigger>
         </TabsList>
         <TabsContent value="my-spaces">
-          <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
-            <AccordionItem value="item-1">
-              <AccordionTrigger>
-                <span className="font-semibold">Sample College</span>
+          <Accordion 
+            type="single" 
+            collapsible 
+            className="w-full" 
+            defaultValue="item-1"
+            onValueChange={(value) => setActiveAccordion(value || undefined)}
+          >
+            <AccordionItem value="item-1" className="border-none">
+              <AccordionTrigger 
+                className={cn(
+                  "w-full rounded-full p-4 font-semibold no-underline hover:no-underline",
+                  activeAccordion === "item-1" 
+                    ? "bg-white text-black" 
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                )}
+              >
+                Sample College
               </AccordionTrigger>
               <AccordionContent>
                 <Card className="border-0">
