@@ -21,12 +21,12 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 const MIcon = () => (
     <svg
-      width="24"
-      height="24"
+      width="40"
+      height="40"
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="h-10 w-10 shrink-0"
+      className="h-14 w-14 shrink-0"
     >
       <path
         d="M8 15V9H6V15H8Z"
