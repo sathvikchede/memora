@@ -9,25 +9,36 @@ import { useInformation, Question as QuestionType, Author as AuthorType, Answer 
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
-const ThreadItem = ({ children, author, level = 0, onChat }: { children: React.ReactNode, author: AuthorType, level?: number, onChat: () => void }) => {
+const ThreadItem = ({ 
+    children, 
+    author, 
+    level = 0, 
+    onChat,
+    isLast,
+}: { 
+    children: React.ReactNode, 
+    author: AuthorType, 
+    level?: number, 
+    onChat: () => void,
+    isLast: boolean,
+}) => {
     return (
-        <div className="relative flex items-start gap-4">
+        <div className="relative flex items-start gap-3">
             <div className="relative z-10 flex flex-col items-center">
-                <Avatar>
+                <Avatar className="h-8 w-8">
                     <AvatarImage src={author.avatar} alt={author.name} />
                     <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
                 </Avatar>
+                {!isLast && <div className="absolute top-10 left-1/2 -translate-x-1/2 h-[calc(100%_-_1rem)] w-0.5 bg-border"></div>}
             </div>
             
             <div className="w-full">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="font-semibold">{author.name}</p>
-                        <p className="text-sm text-muted-foreground">{author.department}</p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={onChat}>Chat</Button>
+                <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm">{author.name}</p>
+                    <p className="text-xs text-muted-foreground">{author.department}</p>
+                    <Button variant="link" size="sm" onClick={onChat} className="ml-auto p-0 h-auto text-muted-foreground">Chat</Button>
                 </div>
-                <div className="mt-2 rounded-lg border bg-muted p-4">
+                <div className="mt-2">
                     {children}
                 </div>
             </div>
@@ -81,50 +92,50 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
     const canFollowUp = (level: number) => level < 2;
 
     const renderAnswers = (question: QuestionType, answers: AnswerType[], level: number) => {
-        return answers.map((answer) => {
+        return answers.map((answer, index) => {
             const hasFollowUps = answer.followUps && answer.followUps.length > 0;
             const isExpanded = expandedAnswers.includes(answer.id);
+            const isLast = index === answers.length - 1 && !hasFollowUps;
             
             return (
-                <div className="space-y-6 pl-8" key={answer.id}>
-                    <ThreadItem author={answer.author} level={level + 1} onChat={() => handleChat(answer.author.id)}>
-                        <p className={cn(!isExpanded && "line-clamp-3")}>{answer.text}</p>
+                <div className="space-y-6" key={answer.id}>
+                    <ThreadItem author={answer.author} level={level + 1} onChat={() => handleChat(answer.author.id)} isLast={isLast}>
+                        <p className={cn("text-sm", !isExpanded && "line-clamp-3")}>{answer.text}</p>
                         <Button 
-                            variant="ghost" 
-                            className="w-full h-auto text-white mt-2 hover:bg-black/20"
+                            variant="link" 
+                            className="w-auto h-auto p-0 text-xs text-muted-foreground mt-2"
                             onClick={() => toggleAnswerExpansion(answer.id)}
                         >
                             {isExpanded ? 'Read less' : 'Read more'}
                         </Button>
-                        <div className="mt-4 flex">
-                            <Button variant="outline" className="flex-1 rounded-r-none" onClick={() => upvoteAnswer(question.id, answer.id)}><ThumbsUp className="mr-2 h-4 w-4" /> {answer.upvotes}</Button>
-                            <Button variant="outline" className="flex-1 rounded-l-none" onClick={() => downvoteAnswer(question.id, answer.id)}><ThumbsDown className="mr-2 h-4 w-4" /> {answer.downvotes}</Button>
+                        <div className="mt-2 flex items-center gap-2">
+                            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground" onClick={() => upvoteAnswer(question.id, answer.id)}><ThumbsUp className="h-4 w-4" /> {answer.upvotes}</Button>
+                            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground" onClick={() => downvoteAnswer(question.id, answer.id)}><ThumbsDown className="h-4 w-4" /> {answer.downvotes}</Button>
+                            {isYourQuery && canFollowUp(level) && (
+                                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onFollowUp(question.id, answer.id, question.question)}>Follow-up</Button>
+                            )}
                         </div>
-                         {isYourQuery && canFollowUp(level) && (
-                            <div className="flex justify-end mt-2">
-                                 <Button onClick={() => onFollowUp(question.id, answer.id, question.question)}>Follow-up</Button>
-                            </div>
-                        )}
                     </ThreadItem>
-                    {hasFollowUps && <div className="mt-6 space-y-6">{renderFollowUps(question, answer.followUps, level + 1)}</div>}
+                    {hasFollowUps && isExpanded && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderFollowUps(question, answer.followUps, level + 1)}</div>}
                 </div>
             );
         });
     }
 
     const renderFollowUps = (originalQuestion: QuestionType, followUps: QuestionType[], level: number) => {
-        return followUps.map((followUp) => {
+        return followUps.map((followUp, index) => {
              const hasAnswers = followUp.answers && followUp.answers.length > 0;
+             const isLast = index === followUps.length - 1 && !hasAnswers;
 
             return (
-                <div className="space-y-6 pl-8" key={followUp.id}>
-                    <ThreadItem author={followUp.author} level={level + 1} onChat={() => handleChat(followUp.author.id)}>
-                        <p>{followUp.question}</p>
-                        <div className="flex justify-end mt-4">
-                            <Button onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
+                <div className="space-y-6" key={followUp.id}>
+                    <ThreadItem author={followUp.author} level={level + 1} onChat={() => handleChat(followUp.author.id)} isLast={isLast}>
+                        <p className="font-semibold text-sm">{followUp.question}</p>
+                         <div className="mt-2 flex items-center gap-2">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
                         </div>
                     </ThreadItem>
-                    {hasAnswers && <div className="mt-6 space-y-6">{renderAnswers(followUp, followUp.answers, level + 1)}</div>}
+                    {hasAnswers && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderAnswers(followUp, followUp.answers, level + 1)}</div>}
                 </div>
             );
         });
@@ -134,13 +145,13 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
 
     return (
         <div className="space-y-6">
-           <ThreadItem author={thread.author} level={0} onChat={() => handleChat(thread.author.id)}>
-                <p>{thread.question}</p>
-                <div className="flex justify-end mt-4">
+           <ThreadItem author={thread.author} level={0} onChat={() => handleChat(thread.author.id)} isLast={!hasAnswers}>
+                <h2 className="text-lg font-bold">{thread.question}</h2>
+                <div className="mt-4 flex items-center gap-2">
                     <Button onClick={() => onAnswer(thread.id, thread.question)}>Answer</Button>
                 </div>
             </ThreadItem>
-            {hasAnswers && <div className="mt-6 space-y-6">{renderAnswers(thread, thread.answers, 0)}</div>}
+            {hasAnswers && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderAnswers(thread, thread.answers, 0)}</div>}
         </div>
     );
 }
