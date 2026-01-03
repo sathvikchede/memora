@@ -17,7 +17,25 @@ export function ChatClient() {
 
   const activeChatUserId = searchParams.get('userId');
 
-  const otherUsers = users.filter((u) => u.id !== currentUser.id);
+  const otherUsers = users
+    .filter((u) => u.id !== currentUser.id)
+    .sort((a, b) => {
+      const aConversationId = [currentUser.id, a.id].sort().join('-');
+      const bConversationId = [currentUser.id, b.id].sort().join('-');
+
+      const aMessages = getChatMessages(aConversationId);
+      const bMessages = getChatMessages(bConversationId);
+
+      const aLastMessage = aMessages.length > 0 ? aMessages[aMessages.length - 1] : null;
+      const bLastMessage = bMessages.length > 0 ? bMessages[bMessages.length - 1] : null;
+
+      if (!aLastMessage && !bLastMessage) return 0;
+      if (!aLastMessage) return 1; // a goes to the bottom
+      if (!bLastMessage) return -1; // b goes to the bottom
+
+      return new Date(bLastMessage.timestamp).getTime() - new Date(aLastMessage.timestamp).getTime();
+    });
+
 
   if (activeChatUserId) {
     const activeChatUser = users.find((u) => u.id === activeChatUserId);
