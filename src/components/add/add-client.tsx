@@ -57,7 +57,7 @@ export function AddClient() {
   const handleSend = async () => {
     if (input.trim() || uploadedFiles.length > 0) {
       setIsSending(true);
-      let newEntry: Entry | null = null;
+      let newEntryData: Omit<Entry, 'id' | 'userId'> | null = null;
 
       if (uploadedFiles.length > 0) {
         for (const file of uploadedFiles) {
@@ -67,26 +67,24 @@ export function AddClient() {
             };
             try {
                 const result = await processMultimediaInput(multimediaInput);
-                newEntry = {
-                    id: `entry-${Date.now()}`,
+                newEntryData = {
                     text: result.summary,
                     contributor: isAnonymous ? "Anonymous" : currentUser.name,
                     date: new Date().toISOString().split("T")[0],
                     type: 'add',
                     status: 'success'
                 };
-                addEntry(newEntry);
+                addEntry(newEntryData);
             } catch (error) {
                 console.error("Error processing file:", error);
-                 newEntry = {
-                    id: `entry-${Date.now()}`,
+                 newEntryData = {
                     text: `Failed to process file: ${file.name}`,
                     contributor: isAnonymous ? "Anonymous" : currentUser.name,
                     date: new Date().toISOString().split("T")[0],
                     type: 'add',
                     status: 'mismatch'
                 };
-                addEntry(newEntry);
+                addEntry(newEntryData);
             }
         }
       } else if (input.trim()) {
@@ -96,31 +94,29 @@ export function AddClient() {
 
         try {
           const result = await summarizeUserInformation(summarizeInput);
-          newEntry = {
-            id: result.summaryId || `entry-${Date.now()}`,
+          newEntryData = {
             text: result.summary,
             contributor: isAnonymous ? "Anonymous" : currentUser.name,
             date: new Date().toISOString().split("T")[0],
             type: 'add',
             status: 'success'
           };
-          addEntry(newEntry);
+          addEntry(newEntryData);
         } catch (error) {
           console.error("Error summarizing information:", error);
-          newEntry = {
-            id: `entry-${Date.now()}`,
+          newEntryData = {
             text: "Failed to summarize and add your entry.",
             contributor: isAnonymous ? "Anonymous" : currentUser.name,
             date: new Date().toISOString().split("T")[0],
             type: 'add',
             status: 'mismatch'
           };
-          addEntry(newEntry);
+          addEntry(newEntryData);
         }
       }
       
-      if (newEntry) {
-          setLatestEntry(newEntry);
+      if (newEntryData) {
+          setLatestEntry({ ...newEntryData, id: `entry-${Date.now()}`, userId: currentUser.id });
       }
       setInput("");
       setUploadedFiles([]);
@@ -218,7 +214,7 @@ export function AddClient() {
     }
   }
 
-  const entriesForAdd = entries.filter(e => e.type === 'add');
+  const entriesForAdd = entries.filter(e => e.type === 'add' && e.userId === currentUser.id);
   
   const handleNewChatClick = () => {
     setView('add');
@@ -363,7 +359,7 @@ export function AddClient() {
         {entriesForAdd.slice().reverse().map(entry => (
           <div key={entry.id} className="space-y-2">
             {entry.contributor === 'Anonymous' && (
-              <p className="text-xs font-semibold text-muted-foreground">Anonymous</p>
+              <p className="text-xs font-semibold text-muted-foreground">Anonymous (You)</p>
             )}
             <div className="rounded-md border p-4">{entry.text}</div>
             {entry.status && (
@@ -394,3 +390,5 @@ export function AddClient() {
     </div>
   );
 }
+
+    

@@ -23,7 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useInformation, Message } from "@/context/information-context";
+import { useInformation, Message, Entry } from "@/context/information-context";
 import { answerUserQuery, AnswerUserQueryInput } from "@/ai/flows/answer-user-queries-with-sources";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
 import ReactMarkdown from 'react-markdown';
@@ -105,8 +105,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
             };
             try {
                 const result = await processMultimediaInput(multimediaInput);
-                const newEntry = {
-                    id: `entry-${Date.now()}`,
+                const newEntry: Omit<Entry, 'id' | 'userId'> = {
                     text: result.summary,
                     contributor: currentUser.name,
                     date: new Date().toISOString().split("T")[0],
@@ -268,7 +267,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                 </div>
               ) : (
                 <div className="flex w-full flex-col">
-                    <div className="prose prose-invert prose-sm max-w-none">
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
                          <ReactMarkdown
                             components={{
                                 h1: ({node, ...props}) => <h1 className="text-2xl font-bold" {...props} />,
@@ -401,3 +400,5 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
     </div>
   );
 }
+
+    

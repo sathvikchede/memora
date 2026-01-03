@@ -48,6 +48,7 @@ export interface Question {
 
 export interface Entry {
     id: string;
+    userId: string;
     text: string;
     contributor: string;
     date: string;
@@ -66,6 +67,7 @@ export interface Message {
 
 export interface ChatHistoryItem {
     id: string;
+    userId: string;
     title: string;
     date: string;
     messages: Message[];
@@ -179,7 +181,7 @@ const initialQuestions: Question[] = [
 
 interface InformationContextType {
     entries: Entry[];
-    addEntry: (entry: Entry) => void;
+    addEntry: (entry: Omit<Entry, 'id' | 'userId'>) => void;
     questions: Question[];
     addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => void;
     addAnswer: (questionId: string, answer: Omit<Answer, 'followUps' | 'id'>, originalQuestion: string) => void;
@@ -300,8 +302,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const addEntry = (entry: Entry) => {
-        setEntries(prevEntries => [...prevEntries, { ...entry, id: `entry-${Date.now()}` }]);
+    const addEntry = (entry: Omit<Entry, 'id' | 'userId'>) => {
+        setEntries(prevEntries => [...prevEntries, { ...entry, id: `entry-${Date.now()}`, userId: currentUser.id }]);
     };
 
     const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => {
@@ -313,7 +315,6 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         };
         setQuestions(prevQuestions => [newQuestion, ...prevQuestions]);
         addEntry({
-            id: `entry-${Date.now()}`,
             text: `Question: ${question.question}`,
             contributor: question.author.name,
             date: new Date().toISOString().split('T')[0],
@@ -343,7 +344,6 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
 
         setQuestions(prev => findAndAddAnswer(prev));
          addEntry({
-            id: `entry-${Date.now()}`,
             text: `In response to "${originalQuestion}", the answer is: ${answer.text}`,
             contributor: answer.author.name,
             date: new Date().toISOString().split('T')[0],
@@ -376,7 +376,6 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         };
         setQuestions(prev => findAndAddFollowUp(prev));
         addEntry({
-            id: `entry-${Date.now()}`,
             text: `A follow-up to "${originalQuestion}" asks: ${followUp.question}`,
             contributor: followUp.author.name,
             date: new Date().toISOString().split('T')[0],
@@ -437,7 +436,6 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
 
         if (isRemembering && content.trim()) {
              addEntry({
-                id: `entry-${Date.now()}`,
                 text: content,
                 contributor: currentUser.name,
                 date: new Date().toISOString().split("T")[0],
@@ -465,6 +463,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const addHistoryItem = (title: string, messages: Message[], sources: any[] = []): ChatHistoryItem => {
         const newItem: ChatHistoryItem = {
             id: `chat-${Date.now()}`,
+            userId: currentUser.id,
             title,
             date: new Date().toISOString(),
             messages,
@@ -508,5 +507,4 @@ export const useInformation = () => {
     return context;
 };
 
-    
     

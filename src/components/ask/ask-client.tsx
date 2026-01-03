@@ -14,7 +14,7 @@ type View = "new-chat" | "history" | "chat-detail" | "sources";
 export function AskClient() {
   const [view, setView] = useState<View>("new-chat");
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const { chatHistory, getChatHistoryItem } = useInformation();
+  const { chatHistory, getChatHistoryItem, currentUser } = useInformation();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -49,6 +49,7 @@ export function AskClient() {
   };
 
   const activeChat = activeChatId ? getChatHistoryItem(activeChatId) : null;
+  const userChatHistory = chatHistory.filter(item => item.userId === currentUser.id);
 
   const renderNav = () => {
     let title = "";
@@ -106,13 +107,13 @@ export function AskClient() {
         case "history":
             return (
                 <div className="divide-y divide-border">
-                    {chatHistory.map(item => (
+                    {userChatHistory.map(item => (
                         <div key={item.id} onClick={() => navigate("chat-detail", { id: item.id })} className="flex cursor-pointer items-center justify-between p-4 hover:bg-accent">
                             <span className="font-medium">{item.title}</span>
                             <span className="text-sm text-muted-foreground">{new Date(item.date).toLocaleDateString()}</span>
                         </div>
                     ))}
-                    {chatHistory.length === 0 && <p className="p-4 text-center text-muted-foreground">No chat history yet.</p>}
+                    {userChatHistory.length === 0 && <p className="p-4 text-center text-muted-foreground">No chat history yet.</p>}
                 </div>
             );
         case "chat-detail":
@@ -167,3 +168,5 @@ export function AskClient() {
     </div>
   );
 }
+
+    
