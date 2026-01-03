@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Bold, Italic, Underline, Image as ImageIcon, Paperclip, UserX } from "lucide-react";
 import { useInformation } from '@/context/information-context';
+import ReactMarkdown from 'react-markdown';
 
 interface PostEditorProps {
     mode: "post-question" | "answer-question" | "follow-up-question";
@@ -48,8 +49,8 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 placeholder = 'Italic Text';
                 break;
             case 'underline':
-                prefix = '&lt;u&gt;';
-                suffix = '&lt;/u&gt;';
+                prefix = '<u>';
+                suffix = '</u>';
                 placeholder = 'Underlined Text';
                 break;
             case 'h1':
@@ -71,7 +72,6 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
 
         const textToInsert = selectedText || placeholder;
         
-        // For block styles like headings, ensure they are on a new line
         const before = content.substring(0, start);
         const after = content.substring(end);
         
@@ -81,17 +81,14 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
 
         if (isBlock) {
             const startOfLine = before.lastIndexOf('\n') + 1;
-            const beforeLine = content.substring(0, startOfLine);
-            const lineContent = content.substring(startOfLine, end);
-            const afterLine = content.substring(end);
+            const needsPrefixNewline = start > 0 && content.charAt(start - 1) !== '\n';
+            const finalPrefix = (needsPrefixNewline ? '\n' : '') + prefix;
 
-            if (selectedText) { // If text is selected
+            if (selectedText) {
                  newText = `${before.substring(0,startOfLine)}${prefix}${content.substring(startOfLine,end)}${after}`;
                  selectionStart = startOfLine;
                  selectionEnd = end + prefix.length;
-            } else { // No text selected, insert on new line
-                const needsNewline = before.length > 0 && !before.endsWith('\n');
-                const finalPrefix = (needsNewline ? '\n' : '') + prefix;
+            } else {
                 newText = `${before}${finalPrefix}${placeholder}${after}`;
                 selectionStart = start + finalPrefix.length;
                 selectionEnd = selectionStart + placeholder.length;
@@ -152,7 +149,7 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 }
                 break;
             case "follow-up-question":
-                 if (answerId &amp;&amp; questionId) {
+                 if (answerId && questionId) {
                     addFollowUp(answerId, { question: content, author, parentId: questionId }, question);
                 }
                 break;
@@ -193,6 +190,12 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 }
                 className="flex-1 resize-none rounded-none border-0 focus-visible:ring-0"
             />
+            <div className="flex-shrink-0 border-t p-4">
+               <div className="max-h-48 overflow-y-auto rounded-md border p-4 prose prose-sm dark:prose-invert">
+                 <h3 className="text-xs font-bold uppercase text-muted-foreground">Preview</h3>
+                 <ReactMarkdown>{content || "Your rendered output will appear here."}</ReactMarkdown>
+               </div>
+            </div>
             <div className="flex-shrink-0 p-4">
                 <Button className="w-full" onClick={handlePost} disabled={!content.trim()}>
                     {getButtonText()}
@@ -201,5 +204,3 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
         </div>
     );
 }
-
-    
