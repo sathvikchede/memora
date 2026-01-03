@@ -14,11 +14,9 @@ type View = "new-chat" | "history" | "chat-detail" | "sources";
 export function AskClient() {
   const [view, setView] = useState<View>("new-chat");
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const { getSpaceData, getChatHistoryItem, currentUser } = useInformation();
+  const { chatHistory, getChatHistoryItem, currentUser } = useInformation();
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const { chatHistory } = getSpaceData();
 
   useEffect(() => {
     const viewParam = searchParams.get('view') as View;

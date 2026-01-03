@@ -10,11 +10,9 @@ interface YourResponsesProps {
 }
 
 export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
-    const { getSpaceData, currentUser } = useInformation();
+    const { questions, currentUser } = useInformation();
     const [isClient, setIsClient] = useState(false);
     
-    const { questions } = getSpaceData();
-
     useEffect(() => {
         setIsClient(true);
     }, []);

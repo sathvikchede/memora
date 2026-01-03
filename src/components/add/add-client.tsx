@@ -39,7 +39,7 @@ interface UploadedFile {
 }
 
 export function AddClient() {
-  const { getSpaceData, addEntry, currentUser, updateCreditBalance } = useInformation();
+  const { entries, addEntry, currentUser, updateCreditBalance } = useInformation();
   const { toast } = useToast();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,8 +54,6 @@ export function AddClient() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [latestEntry, setLatestEntry] = useState<Entry | null>(null);
-
-  const { entries } = getSpaceData();
 
   const handleSend = async () => {
     if (input.trim() || uploadedFiles.length > 0) {
