@@ -77,6 +77,7 @@ export function ChatClient() {
           const conversationId = [currentUser.id, user.id].sort().join('-');
           const messages = getChatMessages(conversationId);
           const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+          const spaceDetails = user.spaceDetails['sample-college'] || { year: '', department: ''};
           
           return (
             <Button
@@ -93,7 +94,7 @@ export function ChatClient() {
                 <div className="flex-1 text-left">
                   <p className="font-semibold">{user.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {user.year} - {user.department}
+                    {spaceDetails.year} - {spaceDetails.department}
                   </p>
                 </div>
                 <div className="text-right text-sm text-muted-foreground">

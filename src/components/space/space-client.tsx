@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,60 +21,62 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useInformation, Club, WorkExperience } from '@/context/information-context';
+import { useInformation, Club, WorkExperience, SpaceUserDetail } from '@/context/information-context';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 
 export function SpaceClient() {
-  const { currentUser, updateUser } = useInformation();
+  const { currentUser, updateUser, activeSpaceId, setActiveSpaceId } = useInformation();
   const { toast } = useToast();
   
-  const [year, setYear] = useState(currentUser.year || '');
-  const [department, setDepartment] = useState(currentUser.department || '');
-  const [clubs, setClubs] = useState<Club[]>(currentUser.clubs || []);
-  const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>(currentUser.workExperience || []);
-  const [activeAccordion, setActiveAccordion] = useState<string | undefined>("item-1");
-
+  const [currentSpaceDetails, setCurrentSpaceDetails] = useState<SpaceUserDetail>(currentUser.spaceDetails[activeSpaceId] || {});
 
   useEffect(() => {
-    setYear(currentUser.year || '');
-    setDepartment(currentUser.department || '');
-    setClubs(currentUser.clubs || []);
-    setWorkExperiences(currentUser.workExperience || []);
-  }, [currentUser]);
+    setCurrentSpaceDetails(currentUser.spaceDetails[activeSpaceId] || {});
+  }, [currentUser, activeSpaceId]);
+
+  const handleDetailChange = (field: keyof SpaceUserDetail, value: any) => {
+    setCurrentSpaceDetails(prev => ({...prev, [field]: value}));
+  };
 
   const addClub = () => {
-    setClubs([...clubs, { id: `club-${Date.now()}`, name: '', position: '' }]);
+    const newClubs = [...(currentSpaceDetails.clubs || []), { id: `club-${Date.now()}`, name: '', position: '' }];
+    handleDetailChange('clubs', newClubs);
   };
 
   const removeClub = (id: string) => {
-    setClubs(clubs.filter(club => club.id !== id));
+    const newClubs = currentSpaceDetails.clubs?.filter(club => club.id !== id);
+    handleDetailChange('clubs', newClubs);
   };
 
   const handleClubChange = (id: string, field: 'name' | 'position', value: string) => {
-    setClubs(clubs.map(club => club.id === id ? { ...club, [field]: value } : club));
+    const newClubs = currentSpaceDetails.clubs?.map(club => club.id === id ? { ...club, [field]: value } : club);
+    handleDetailChange('clubs', newClubs);
   };
   
   const addWorkExperience = () => {
-    setWorkExperiences([...workExperiences, { id: `work-${Date.now()}`, organization: '', employmentType: 'intern', position: '', startDate: '', endDate: '' }]);
+    const newWorkExperiences = [...(currentSpaceDetails.workExperience || []), { id: `work-${Date.now()}`, organization: '', employmentType: 'intern', position: '', startDate: '', endDate: '' }];
+    handleDetailChange('workExperience', newWorkExperiences);
   };
 
   const removeWorkExperience = (id: string) => {
-    setWorkExperiences(workExperiences.filter(exp => exp.id !== id));
+    const newWorkExperiences = currentSpaceDetails.workExperience?.filter(exp => exp.id !== id);
+    handleDetailChange('workExperience', newWorkExperiences);
   };
 
   const handleWorkExperienceChange = (id: string, field: keyof Omit<WorkExperience, 'id'>, value: string) => {
-    setWorkExperiences(workExperiences.map(exp => exp.id === id ? { ...exp, [field]: value } : exp));
+    const newWorkExperiences = currentSpaceDetails.workExperience?.map(exp => exp.id === id ? { ...exp, [field]: value } : exp);
+    handleDetailChange('workExperience', newWorkExperiences);
   };
 
   const handleSaveChanges = () => {
     const updatedUser = {
       ...currentUser,
-      year,
-      department,
-      clubs,
-      workExperience: workExperiences
+      spaceDetails: {
+        ...currentUser.spaceDetails,
+        [activeSpaceId]: currentSpaceDetails
+      }
     };
     updateUser(updatedUser);
     toast({
@@ -81,6 +84,11 @@ export function SpaceClient() {
         description: "Your space details have been updated."
     })
   }
+
+  const spaces = [
+    { id: 'sample-college', name: 'Sample College' },
+    { id: 'griet-college', name: 'GRIET College' }
+  ];
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
@@ -94,79 +102,81 @@ export function SpaceClient() {
             type="single" 
             collapsible 
             className="w-full" 
-            defaultValue="item-1"
-            onValueChange={(value) => setActiveAccordion(value || undefined)}
+            value={activeSpaceId}
+            onValueChange={(value) => value && setActiveSpaceId(value)}
           >
-            <AccordionItem value="item-1" className="border-none">
-              <AccordionTrigger 
-                className={cn(
-                  "w-full rounded-full p-4 font-semibold no-underline hover:no-underline",
-                  activeAccordion === "item-1" 
-                    ? "bg-white text-black" 
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                )}
-              >
-                Sample College
-              </AccordionTrigger>
-              <AccordionContent>
-                <Card className="border-0">
-                    <CardHeader>
-                        <CardTitle>College Details</CardTitle>
-                        <CardDescription>Fill in your details for this space.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="year">Year</Label>
-                            <Input id="year" placeholder="e.g., 2nd Year" value={year} onChange={e => setYear(e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="department">Department</Label>
-                            <Input id="department" placeholder="e.g., Computer Science" value={department} onChange={e => setDepartment(e.target.value)} />
-                        </div>
-
-                        <div className="space-y-4">
-                            <Label>Clubs</Label>
-                            {clubs.map((club) => (
-                                <div key={club.id} className="flex items-center gap-2">
-                                    <Input placeholder="Club Name" value={club.name} onChange={e => handleClubChange(club.id, 'name', e.target.value)} />
-                                    <Input placeholder="Position" value={club.position} onChange={e => handleClubChange(club.id, 'position', e.target.value)} />
-                                    <Button variant="ghost" size="icon" onClick={() => removeClub(club.id)}><Trash2 className="h-4 w-4" /></Button>
+            {spaces.map(space => (
+                <AccordionItem key={space.id} value={space.id} className="border-none mb-2">
+                    <AccordionTrigger 
+                        className={cn(
+                        "w-full rounded-full p-4 font-semibold no-underline hover:no-underline",
+                        activeSpaceId === space.id
+                            ? "bg-white text-black" 
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        )}
+                    >
+                        {space.name}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <Card className="border-0">
+                            <CardHeader>
+                                <CardTitle>{space.name} Details</CardTitle>
+                                <CardDescription>Fill in your details for this space.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="year">Year</Label>
+                                    <Input id="year" placeholder="e.g., 2nd Year" value={currentSpaceDetails.year || ''} onChange={e => handleDetailChange('year', e.target.value)} />
                                 </div>
-                            ))}
-                            <Button variant="outline" size="sm" onClick={addClub}><PlusCircle className="mr-2 h-4 w-4" /> Add Club</Button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <Label>Work Experience</Label>
-                            {workExperiences.map((exp) => (
-                                <div key={exp.id} className="space-y-4 rounded-md border p-4">
-                                     <div className="flex justify-end">
-                                        <Button variant="ghost" size="icon" onClick={() => removeWorkExperience(exp.id)} className="h-6 w-6"><Trash2 className="h-4 w-4" /></Button>
-                                     </div>
-                                    <Input placeholder="Organization Name" value={exp.organization} onChange={e => handleWorkExperienceChange(exp.id, 'organization', e.target.value)} />
-                                    <div className="flex gap-2">
-                                        <Select onValueChange={value => handleWorkExperienceChange(exp.id, 'employmentType', value)} value={exp.employmentType}>
-                                            <SelectTrigger><SelectValue placeholder="Employment Type" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="intern">Intern</SelectItem>
-                                                <SelectItem value="full-time">Full-time</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <Input placeholder="Position" value={exp.position} onChange={e => handleWorkExperienceChange(exp.id, 'position', e.target.value)} />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Input placeholder="Start Date (DDMMYYYY)" value={exp.startDate} onChange={e => handleWorkExperienceChange(exp.id, 'startDate', e.target.value)} />
-                                        <Input placeholder="End Date (DDMMYYYY)" value={exp.endDate} onChange={e => handleWorkExperienceChange(exp.id, 'endDate', e.target.value)} />
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="department">Department</Label>
+                                    <Input id="department" placeholder="e.g., Computer Science" value={currentSpaceDetails.department || ''} onChange={e => handleDetailChange('department', e.target.value)} />
                                 </div>
-                            ))}
-                             <Button variant="outline" size="sm" onClick={addWorkExperience}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
-                        </div>
-                        <Button className="w-full" onClick={handleSaveChanges}>Save Changes</Button>
-                    </CardContent>
-                </Card>
-              </AccordionContent>
-            </AccordionItem>
+
+                                <div className="space-y-4">
+                                    <Label>Clubs</Label>
+                                    {currentSpaceDetails.clubs?.map((club) => (
+                                        <div key={club.id} className="flex items-center gap-2">
+                                            <Input placeholder="Club Name" value={club.name} onChange={e => handleClubChange(club.id, 'name', e.target.value)} />
+                                            <Input placeholder="Position" value={club.position} onChange={e => handleClubChange(club.id, 'position', e.target.value)} />
+                                            <Button variant="ghost" size="icon" onClick={() => removeClub(club.id)}><Trash2 className="h-4 w-4" /></Button>
+                                        </div>
+                                    ))}
+                                    <Button variant="outline" size="sm" onClick={addClub}><PlusCircle className="mr-2 h-4 w-4" /> Add Club</Button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Label>Work Experience</Label>
+                                    {currentSpaceDetails.workExperience?.map((exp) => (
+                                        <div key={exp.id} className="space-y-4 rounded-md border p-4">
+                                            <div className="flex justify-end">
+                                                <Button variant="ghost" size="icon" onClick={() => removeWorkExperience(exp.id)} className="h-6 w-6"><Trash2 className="h-4 w-4" /></Button>
+                                            </div>
+                                            <Input placeholder="Organization Name" value={exp.organization} onChange={e => handleWorkExperienceChange(exp.id, 'organization', e.target.value)} />
+                                            <div className="flex gap-2">
+                                                <Select onValueChange={value => handleWorkExperienceChange(exp.id, 'employmentType', value)} value={exp.employmentType}>
+                                                    <SelectTrigger><SelectValue placeholder="Employment Type" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="intern">Intern</SelectItem>
+                                                        <SelectItem value="full-time">Full-time</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Input placeholder="Position" value={exp.position} onChange={e => handleWorkExperienceChange(exp.id, 'position', e.target.value)} />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Input placeholder="Start Date (DDMMYYYY)" value={exp.startDate} onChange={e => handleWorkExperienceChange(exp.id, 'startDate', e.target.value)} />
+                                                <Input placeholder="End Date (DDMMYYYY)" value={exp.endDate} onChange={e => handleWorkExperienceChange(exp.id, 'endDate', e.target.value)} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <Button variant="outline" size="sm" onClick={addWorkExperience}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
+                                </div>
+                                <Button className="w-full" onClick={handleSaveChanges}>Save Changes</Button>
+                            </CardContent>
+                        </Card>
+                    </AccordionContent>
+                </AccordionItem>
+            ))}
           </Accordion>
         </TabsContent>
         <TabsContent value="created-spaces">

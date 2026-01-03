@@ -46,7 +46,7 @@ function HelpClientContent() {
     }, [searchParams]);
     
     const navigate = (newView: HelpView, params?: Record<string, string | undefined>) => {
-        const newParams = new URLSearchParams();
+        const newParams = new URLSearchParams(searchParams);
         newParams.set('view', newView);
         if (params) {
             Object.entries(params).forEach(([key, value]) => {

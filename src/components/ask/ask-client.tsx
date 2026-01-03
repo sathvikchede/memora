@@ -14,9 +14,11 @@ type View = "new-chat" | "history" | "chat-detail" | "sources";
 export function AskClient() {
   const [view, setView] = useState<View>("new-chat");
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const { chatHistory, getChatHistoryItem, currentUser } = useInformation();
+  const { getSpaceData, getChatHistoryItem, currentUser } = useInformation();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const { chatHistory } = getSpaceData();
 
   useEffect(() => {
     const viewParam = searchParams.get('view') as View;
@@ -24,18 +26,24 @@ export function AskClient() {
 
     if (viewParam) {
       setView(viewParam);
+    } else {
+      setView('new-chat');
     }
+
     if (idParam) {
       setActiveChatId(idParam);
+    } else {
+      setActiveChatId(null);
     }
   }, [searchParams]);
 
   const navigate = (newView: View, params?: Record<string, string | undefined>) => {
-    const newParams = new URLSearchParams();
+    const newParams = new URLSearchParams(searchParams);
     newParams.set('view', newView);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) newParams.set(key, value);
+        else newParams.delete(key);
       });
     } else {
         newParams.delete('id');

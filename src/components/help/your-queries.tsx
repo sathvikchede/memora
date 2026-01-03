@@ -10,8 +10,10 @@ interface YourQueriesProps {
 }
 
 export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
-    const { questions, currentUser } = useInformation();
+    const { getSpaceData, currentUser } = useInformation();
     const [isClient, setIsClient] = useState(false);
+
+    const { questions } = getSpaceData();
 
     useEffect(() => {
         setIsClient(true);
@@ -41,5 +43,3 @@ export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
         </div>
     );
 }
-
-    

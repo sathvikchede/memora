@@ -10,8 +10,10 @@ interface YourResponsesProps {
 }
 
 export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
-    const { questions, currentUser } = useInformation();
+    const { getSpaceData, currentUser } = useInformation();
     const [isClient, setIsClient] = useState(false);
+    
+    const { questions } = getSpaceData();
 
     useEffect(() => {
         setIsClient(true);
@@ -28,7 +30,9 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
             q.answers.forEach(a => {
                 if (a.author.id === currentUser.id) {
                     // Always add the root question's ID and text for navigation
-                    yourResponses.push({ id: rootQuestion.id, question: q.question, rootQuestion: rootQuestion.question });
+                    if(!yourResponses.some(res => res.id === rootQuestion.id)) {
+                        yourResponses.push({ id: rootQuestion.id, question: q.question, rootQuestion: rootQuestion.question });
+                    }
                 }
                 if (a.followUps) {
                     // Pass the same rootQuestion down the recursion
@@ -42,13 +46,10 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
     questions.forEach(rootQ => {
         findResponses([rootQ], rootQ);
     });
-    
-    // Ensure the list is unique based on the root question ID
-    const uniqueResponses = Array.from(new Map(yourResponses.map(item => [item.id, item])).values());
 
     return (
         <div className="space-y-2">
-            {uniqueResponses.map(query => (
+            {yourResponses.map(query => (
                 <Button 
                     key={query.id} 
                     variant="outline" 

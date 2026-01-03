@@ -17,15 +17,20 @@ export interface WorkExperience {
   startDate: string;
   endDate: string;
 }
+
+export interface SpaceUserDetail {
+  year?: string;
+  department?: string;
+  clubs?: Club[];
+  workExperience?: WorkExperience[];
+}
+
 export interface Author {
     id: string;
     name: string;
-    department: string;
     avatar: string;
-    year: string;
-    clubs: Club[];
-    workExperience: WorkExperience[];
     creditBalance: number;
+    spaceDetails: Record<string, SpaceUserDetail>; // Keyed by spaceId
 }
 
 export interface Answer {
@@ -86,64 +91,66 @@ export interface ChatMessage {
     attachments?: { type: 'image' | 'file', url: string, name: string }[];
 }
 
+interface SpaceData {
+    entries: Entry[];
+    questions: Question[];
+    chatMessages: ChatMessage[];
+    chatHistory: ChatHistoryItem[];
+}
 
 const USERS_KEY = 'memora-users';
+const SPACES_DATA_KEY = 'memora-spaces-data';
+const ACTIVE_SPACE_KEY = 'memora-active-space';
+const CURRENT_USER_KEY = 'memora-current-user';
 
-const initialUsers: Author[] = [
-    { 
-        id: 'user-1', 
-        name: 'Alex', 
-        department: 'Engineering', 
-        avatar: '/avatars/alex.png',
-        year: '3rd Year',
+const initialUsers: Omit<Author, 'spaceDetails'>[] = [
+    { id: 'user-1', name: 'Alex', avatar: '/avatars/alex.png', creditBalance: 0 },
+    { id: 'user-2', name: 'Ben', avatar: '/avatars/ben.png', creditBalance: 0 },
+    { id: 'user-3', name: 'Clara', avatar: '/avatars/clara.png', creditBalance: 0 },
+    { id: 'user-4', name: 'David', avatar: '/avatars/david.png', creditBalance: 0 },
+    { id: 'user-5', name: 'Eva', avatar: '/avatars/eva.png', creditBalance: 0 },
+];
+
+const initialSampleCollegeSpaceDetails: Record<string, SpaceUserDetail> = {
+    'user-1': { 
+        year: '3rd Year', 
+        department: 'Engineering',
         clubs: [
             { id: 'c1', name: 'AI Club', position: 'President' },
             { id: 'c2', name: 'Debate Club', position: 'Member' },
         ],
         workExperience: [
             { id: 'w1', organization: 'Google', employmentType: 'intern', position: 'Software Engineer Intern', startDate: '01062023', endDate: '31082023' }
-        ],
-        creditBalance: 0,
+        ]
     },
-    { 
-        id: 'user-2', 
-        name: 'Ben', 
-        department: 'Product', 
-        avatar: '/avatars/ben.png',
-        year: '4th Year',
-        clubs: [
-            { id: 'c3', name: 'Entrepreneurship Club', position: 'Vice President' }
-        ],
-        workExperience: [],
-        creditBalance: 0,
-    },
-    { id: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png', year: '2nd Year', clubs: [], workExperience: [], creditBalance: 0 },
-    { id: 'user-4', name: 'David', department: 'Marketing', avatar: '/avatars/david.png', year: '1st Year', clubs: [], workExperience: [], creditBalance: 0 },
-    { id: 'user-5', name: 'Eva', department: 'Data Science', avatar: '/avatars/eva.png', year: '3rd Year', clubs: [{id: 'c4', name: 'Coding Club', position: 'Treasurer'}], workExperience: [], creditBalance: 0 },
-];
+    'user-2': { year: '4th Year', department: 'Product', clubs: [{ id: 'c3', name: 'Entrepreneurship Club', position: 'Vice President' }] },
+    'user-3': { year: '2nd Year', department: 'Design' },
+    'user-4': { year: '1st Year', department: 'Marketing' },
+    'user-5': { year: '3rd Year', department: 'Data Science', clubs: [{id: 'c4', name: 'Coding Club', position: 'Treasurer'}] },
+};
 
 const initialQuestions: Question[] = [
     {
         id: 'q1',
         question: 'What is the best way to learn React?',
-        author: initialUsers[1],
+        author: { ...initialUsers[1], spaceDetails: {} },
         answers: [
             {
                 id: 'a1-1',
                 text: 'The official React documentation is a great place to start. It\'s comprehensive and always up-to-date.',
-                author: initialUsers[0],
+                author: { ...initialUsers[0], spaceDetails: {} },
                 upvotes: 15,
                 downvotes: 1,
                 followUps: [
                     {
                         id: 'f1-1-1',
                         question: 'Thanks! Any specific projects you\'d recommend for beginners?',
-                        author: initialUsers[1],
+                        author: { ...initialUsers[1], spaceDetails: {} },
                         answers: [
                              {
                                 id: 'fa1-1',
                                 text: 'Build a to-do list app. It covers all the basics: state management, props, and event handling.',
-                                author: initialUsers[2],
+                                author: { ...initialUsers[2], spaceDetails: {} },
                                 upvotes: 10,
                                 downvotes: 0,
                                 followUps: [],
@@ -158,7 +165,7 @@ const initialQuestions: Question[] = [
             {
                 id: 'a1-2',
                 text: 'I found that building a small project, like a personal blog or a weather app, helped solidify my understanding.',
-                author: initialUsers[2],
+                author: { ...initialUsers[2], spaceDetails: {} },
                 upvotes: 8,
                 downvotes: 0,
                 followUps: []
@@ -166,143 +173,123 @@ const initialQuestions: Question[] = [
         ],
         relevance: 'high',
     },
-    {
-        id: 'q2',
-        question: 'How does CSS Grid differ from Flexbox?',
-        author: initialUsers[2],
-        answers: [],
-        relevance: 'medium'
-    },
-    {
-        id: 'q3',
-        question: 'What are the benefits of using TypeScript with React?',
-        author: initialUsers[0],
-        answers: [],
-        relevance: 'low'
-    }
+    { id: 'q2', question: 'How does CSS Grid differ from Flexbox?', author: { ...initialUsers[2], spaceDetails: {} }, answers: [], relevance: 'medium' },
+    { id: 'q3', question: 'What are the benefits of using TypeScript with React?', author: { ...initialUsers[0], spaceDetails: {} }, answers: [], relevance: 'low' }
 ];
 
+const initialSpaceData: Record<string, SpaceData> = {
+    'sample-college': {
+        entries: [],
+        questions: initialQuestions,
+        chatMessages: [],
+        chatHistory: [],
+    },
+    'griet-college': {
+        entries: [],
+        questions: [],
+        chatMessages: [],
+        chatHistory: [],
+    }
+};
+
 interface InformationContextType {
-    entries: Entry[];
+    // Space specific data
+    getSpaceData: () => SpaceData;
     addEntry: (entry: Omit<Entry, 'id' | 'userId'>) => void;
-    questions: Question[];
-    getQuestionById: (questionId: string) => Question | undefined;
     addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => void;
     addAnswer: (questionId: string, answer: Omit<Answer, 'followUps' | 'id'>, originalQuestion: string) => void;
     addFollowUp: (answerId: string, followUp: Omit<Question, 'answers' | 'relevance' | 'id'>, originalQuestion: string) => void;
-    users: Author[];
-    currentUser: Author;
-    setCurrentUser: (user: Author) => void;
-    updateUser: (user: Author) => void;
+    getQuestionById: (questionId: string) => Question | undefined;
     upvoteAnswer: (questionId: string, answerId: string) => void;
     downvoteAnswer: (questionId: string, answerId: string) => void;
-    updateCreditBalance: (userId: string, amount: number) => void;
-    
-    // Chat
-    chatMessages: ChatMessage[];
     getChatMessages: (conversationId: string) => ChatMessage[];
     sendChatMessage: (conversationId: string, content: string, attachments: any[]) => void;
-    rememberStates: Record<string, boolean>;
     getRememberState: (conversationId: string) => boolean;
     toggleRememberState: (conversationId: string) => void;
-
-    // Ask History
-    chatHistory: ChatHistoryItem[];
     addHistoryItem: (title: string, messages: Message[], sources?: any[]) => ChatHistoryItem;
     addMessageToHistory: (chatId: string, message: Message, sources?: any[]) => void;
     getChatHistoryItem: (chatId: string) => ChatHistoryItem | undefined;
 
+    // Global data
+    users: Author[];
+    currentUser: Author;
+    setCurrentUser: (user: Author) => void;
+    updateUser: (user: Author) => void;
+    updateCreditBalance: (userId: string, amount: number) => void;
+    activeSpaceId: string;
+    setActiveSpaceId: (spaceId: string) => void;
     isReady: boolean;
 }
 
 const InformationContext = createContext<InformationContextType | undefined>(undefined);
 
 export const InformationProvider = ({ children }: { children: ReactNode }) => {
-    const [entries, setEntries] = useState<Entry[]>([]);
-    const [questions, setQuestions] = useState<Question[]>([]);
-    const [users, setUsers] = useState<Author[]>(initialUsers);
-    const [currentUser, setCurrentUserInternal] = useState<Author>(initialUsers[0]);
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    const [spacesData, setSpacesData] = useState<Record<string, SpaceData>>(initialSpaceData);
+    const [users, setUsers] = useState<Author[]>([]);
+    const [currentUser, setCurrentUserInternal] = useState<Author | null>(null);
+    const [activeSpaceId, setActiveSpaceIdInternal] = useState<string>('sample-college');
     const [rememberStates, setRememberStates] = useState<Record<string, boolean>>({});
-    const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        // This effect runs only on the client, after hydration
-        const savedEntries = localStorage.getItem('memora-entries');
-        if (savedEntries) setEntries(JSON.parse(savedEntries));
-
-        const savedQuestions = localStorage.getItem('memora-questions');
-        if (savedQuestions && JSON.parse(savedQuestions).length > 0) {
-            setQuestions(JSON.parse(savedQuestions));
-        } else {
-            setQuestions(initialQuestions);
-        }
-        
+        // Load all data from localStorage on initial client-side render
         const savedUsersJSON = localStorage.getItem(USERS_KEY);
-        let savedUsers = null;
-        if (savedUsersJSON) {
-            try {
-                savedUsers = JSON.parse(savedUsersJSON);
-            } catch (e) {
-                console.error("Failed to parse users from localStorage", e);
-            }
-        }
+        const finalUsers = savedUsersJSON ? JSON.parse(savedUsersJSON) : initialUsers.map(u => ({
+            ...u,
+            spaceDetails: { 'sample-college': initialSampleCollegeSpaceDetails[u.id] || {} }
+        }));
+        setUsers(finalUsers);
 
-        if(savedUsers && savedUsers.length === initialUsers.length) {
-            setUsers(savedUsers);
-        } else {
-            setUsers(initialUsers);
-            localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
-        }
+        const savedSpacesData = localStorage.getItem(SPACES_DATA_KEY);
+        setSpacesData(savedSpacesData ? JSON.parse(savedSpacesData) : initialSpaceData);
+
+        const savedActiveSpace = localStorage.getItem(ACTIVE_SPACE_KEY);
+        setActiveSpaceIdInternal(savedActiveSpace || 'sample-college');
         
-        const finalUsers = savedUsers && savedUsers.length === initialUsers.length ? savedUsers : initialUsers;
-        
-        const savedUser = localStorage.getItem('memora-current-user');
-        if(savedUser) {
-            const userToSet = finalUsers.find(u => u.id === JSON.parse(savedUser).id) || finalUsers[0];
+        const savedCurrentUser = localStorage.getItem(CURRENT_USER_KEY);
+        if (savedCurrentUser) {
+            const userToSet = finalUsers.find((u: Author) => u.id === JSON.parse(savedCurrentUser).id) || finalUsers[0];
             setCurrentUserInternal(userToSet);
         } else {
             setCurrentUserInternal(finalUsers[0]);
         }
-
-        const savedChatMessages = localStorage.getItem('memora-chat-messages');
-        if(savedChatMessages) {
-            setChatMessages(JSON.parse(savedChatMessages));
-        }
-
+        
         const savedRememberStates = localStorage.getItem('memora-remember-states');
-        if(savedRememberStates) {
+        if (savedRememberStates) {
             setRememberStates(JSON.parse(savedRememberStates));
-        }
-
-        const savedChatHistory = localStorage.getItem('memora-chat-history');
-        if (savedChatHistory) {
-            setChatHistory(JSON.parse(savedChatHistory));
         }
 
         setIsReady(true);
     }, []);
 
-    useEffect(() => { if (isReady) localStorage.setItem('memora-entries', JSON.stringify(entries)); }, [entries, isReady]);
-    useEffect(() => { if (isReady) localStorage.setItem('memora-questions', JSON.stringify(questions)); }, [questions, isReady]);
-    useEffect(() => { if (isReady) localStorage.setItem('memora-chat-messages', JSON.stringify(chatMessages)); }, [chatMessages, isReady]);
-    useEffect(() => { if (isReady) localStorage.setItem('memora-remember-states', JSON.stringify(rememberStates)); }, [rememberStates, isReady]);
     useEffect(() => { if (isReady) localStorage.setItem(USERS_KEY, JSON.stringify(users)); }, [users, isReady]);
-    useEffect(() => { if (isReady) localStorage.setItem('memora-chat-history', JSON.stringify(chatHistory));}, [chatHistory, isReady]);
+    useEffect(() => { if (isReady) localStorage.setItem(SPACES_DATA_KEY, JSON.stringify(spacesData)); }, [spacesData, isReady]);
+    useEffect(() => { if (isReady) localStorage.setItem(ACTIVE_SPACE_KEY, activeSpaceId); }, [activeSpaceId, isReady]);
+    useEffect(() => { if (isReady && currentUser) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser)); }, [currentUser, isReady]);
+    useEffect(() => { if (isReady) localStorage.setItem('memora-remember-states', JSON.stringify(rememberStates)); }, [rememberStates, isReady]);
 
+    const updateSpaceData = (spaceId: string, newSpaceData: Partial<SpaceData>) => {
+        setSpacesData(prev => ({
+            ...prev,
+            [spaceId]: {
+                ...prev[spaceId],
+                ...newSpaceData,
+            }
+        }));
+    }
 
     const setCurrentUser = (user: Author) => {
         setCurrentUserInternal(user);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('memora-current-user', JSON.stringify(user));
-        }
     };
+
+    const setActiveSpaceId = (spaceId: string) => {
+        setActiveSpaceIdInternal(spaceId);
+    }
 
     const updateUser = (updatedUser: Author) => {
         const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
         setUsers(updatedUsers);
-        if (currentUser.id === updatedUser.id) {
+        if (currentUser && currentUser.id === updatedUser.id) {
             setCurrentUser(updatedUser);
         }
     };
@@ -316,7 +303,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             return u;
         });
         setUsers(updatedUsers);
-        if (currentUser.id === userId) {
+        if (currentUser && currentUser.id === userId) {
             const updatedCurrentUser = updatedUsers.find(u => u.id === userId);
             if (updatedCurrentUser) {
                 setCurrentUser(updatedCurrentUser);
@@ -324,8 +311,13 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    // Space-specific data accessors and mutators
+    const getSpaceData = () => spacesData[activeSpaceId] || { entries: [], questions: [], chatMessages: [], chatHistory: []};
+    
     const addEntry = (entry: Omit<Entry, 'id' | 'userId'>) => {
-        setEntries(prevEntries => [...prevEntries, { ...entry, id: `entry-${Date.now()}`, userId: currentUser.id }]);
+        const newEntry = { ...entry, id: `entry-${Date.now()}`, userId: currentUser!.id };
+        const currentEntries = getSpaceData().entries;
+        updateSpaceData(activeSpaceId, { entries: [...currentEntries, newEntry] });
     };
 
     const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => {
@@ -335,7 +327,9 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             answers: [],
             relevance: 'medium', // Default relevance
         };
-        setQuestions(prevQuestions => [newQuestion, ...prevQuestions]);
+        const currentQuestions = getSpaceData().questions;
+        updateSpaceData(activeSpaceId, { questions: [newQuestion, ...currentQuestions]});
+
         addEntry({
             text: `Question: ${question.question}`,
             contributor: question.author.name,
@@ -347,6 +341,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
 
     const addAnswer = (questionId: string, answer: Omit<Answer, 'followUps'|'id'>, originalQuestion: string) => {
         const newAnswer: Answer = { ...answer, id: `a-${Date.now()}`, followUps: [] };
+        const { questions } = getSpaceData();
 
         const findAndAddAnswer = (qs: Question[]): Question[] => {
             return qs.map(q => {
@@ -363,8 +358,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
                 return q;
             });
         };
+        updateSpaceData(activeSpaceId, { questions: findAndAddAnswer(questions) });
 
-        setQuestions(prev => findAndAddAnswer(prev));
          addEntry({
             text: `In response to "${originalQuestion}", the answer is: ${answer.text}`,
             contributor: answer.author.name,
@@ -375,7 +370,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         });
     };
 
-     const addFollowUp = (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id'>, originalQuestion: string) => {
+    const addFollowUp = (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id'>, originalQuestion: string) => {
         const newFollowUp: Question = {
             ...followUp,
             id: `f-${Date.now()}`,
@@ -383,6 +378,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             relevance: 'medium',
             isFollowUp: true,
         };
+        const { questions } = getSpaceData();
 
         const findAndAddFollowUp = (qs: Question[]): Question[] => {
             return qs.map(q => {
@@ -396,7 +392,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
                 return { ...q, answers: updatedAnswers };
             });
         };
-        setQuestions(prev => findAndAddFollowUp(prev));
+        updateSpaceData(activeSpaceId, { questions: findAndAddFollowUp(questions) });
+
         addEntry({
             text: `A follow-up to "${originalQuestion}" asks: ${followUp.question}`,
             contributor: followUp.author.name,
@@ -408,6 +405,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const updateVotes = (questionId: string, answerId: string, voteType: 'up' | 'down') => {
+        const { questions } = getSpaceData();
         const findAndUpdate = (qs: Question[]): Question[] => {
             return qs.map(q => {
                 const updatedAnswers = q.answers.map(a => {
@@ -427,40 +425,30 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
                 return { ...q, answers: updatedAnswers };
             });
         };
-        setQuestions(prev => findAndUpdate(prev));
+        updateSpaceData(activeSpaceId, { questions: findAndUpdate(questions) });
     };
 
-    const upvoteAnswer = (questionId: string, answerId: string) => {
-        updateVotes(questionId, answerId, 'up');
-    };
-
-    const downvoteAnswer = (questionId: string, answerId: string) => {
-        updateVotes(questionId, answerId, 'down');
-    };
+    const upvoteAnswer = (questionId: string, answerId: string) => updateVotes(questionId, answerId, 'up');
+    const downvoteAnswer = (questionId: string, answerId: string) => updateVotes(questionId, answerId, 'down');
 
     const getQuestionById = useCallback((questionId: string): Question | undefined => {
+        const { questions } = getSpaceData();
         const findQuestion = (qs: Question[]): Question | undefined => {
             for (const q of qs) {
-                if (q.id === questionId) {
-                    return q;
-                }
+                if (q.id === questionId) return q;
                 const foundInAnswers = q.answers.map(a => findQuestion(a.followUps)).find(Boolean);
-                if (foundInAnswers) {
-                    return foundInAnswers;
-                }
+                if (foundInAnswers) return foundInAnswers;
             }
             return undefined;
         };
         return findQuestion(questions);
-    }, [questions]);
-
+    }, [activeSpaceId, spacesData]);
 
     // CHAT
-    const getChatMessages = (conversationId: string) => {
-        return chatMessages.filter(m => m.conversationId === conversationId);
-    }
+    const getChatMessages = (conversationId: string) => getSpaceData().chatMessages.filter(m => m.conversationId === conversationId);
 
     const sendChatMessage = (conversationId: string, content: string, attachments: any[]) => {
+        if (!currentUser) return;
         const isRemembering = getRememberState(conversationId);
         const newMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
@@ -471,7 +459,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             remembered: isRemembering,
             attachments,
         };
-        setChatMessages(prev => [...prev, newMessage]);
+        const currentMessages = getSpaceData().chatMessages;
+        updateSpaceData(activeSpaceId, { chatMessages: [...currentMessages, newMessage] });
 
         if (isRemembering && content.trim()) {
              addEntry({
@@ -483,9 +472,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         }
     };
     
-    const getRememberState = (conversationId: string) => {
-        return rememberStates[conversationId] ?? true; // Default to on
-    };
+    const getRememberState = (conversationId: string) => rememberStates[conversationId] ?? true;
 
     const toggleRememberState = (conversationId: string) => {
         setRememberStates(prev => ({
@@ -495,11 +482,10 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // ASK HISTORY
-    const getChatHistoryItem = (chatId: string) => {
-        return chatHistory.find(item => item.id === chatId);
-    };
+    const getChatHistoryItem = (chatId: string) => getSpaceData().chatHistory.find(item => item.id === chatId);
 
     const addHistoryItem = (title: string, messages: Message[], sources: any[] = []): ChatHistoryItem => {
+        if (!currentUser) throw new Error("No current user");
         const newItem: ChatHistoryItem = {
             id: `chat-${Date.now()}`,
             userId: currentUser.id,
@@ -508,31 +494,46 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             messages,
             sources,
         };
-        setChatHistory(prev => [newItem, ...prev]);
+        const currentHistory = getSpaceData().chatHistory;
+        updateSpaceData(activeSpaceId, { chatHistory: [newItem, ...currentHistory] });
         return newItem;
     };
 
     const addMessageToHistory = (chatId: string, message: Message, sources?: any[]) => {
-        setChatHistory(prev => prev.map(item => {
+        const { chatHistory } = getSpaceData();
+        const newHistory = chatHistory.map(item => {
             if (item.id === chatId) {
                 const newMessages = [...item.messages, message];
                 let newSources = item.sources;
                 if (sources && message.sender === 'ai') {
                     newSources = sources;
                 }
-                // Update title if it's the first user message of a new chat
                 if (item.messages.length === 1 && item.messages[0].sender === 'user') {
                      return { ...item, messages: newMessages, sources: newSources, title: item.messages[0].text };
                 }
                 return { ...item, messages: newMessages, sources: newSources };
             }
             return item;
-        }));
+        });
+        updateSpaceData(activeSpaceId, { chatHistory: newHistory });
     };
 
+    if (!isReady || !currentUser) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        );
+    }
 
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, getQuestionById, addQuestion, addAnswer, addFollowUp, users, currentUser, setCurrentUser, updateUser, upvoteAnswer, downvoteAnswer, updateCreditBalance, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, chatHistory, addHistoryItem, addMessageToHistory, getChatHistoryItem, isReady }}>
+        <InformationContext.Provider value={{ 
+            getSpaceData, addEntry, addQuestion, addAnswer, addFollowUp, getQuestionById, upvoteAnswer, downvoteAnswer,
+            getChatMessages, sendChatMessage, getRememberState, toggleRememberState, 
+            addHistoryItem, addMessageToHistory, getChatHistoryItem,
+            users, currentUser, setCurrentUser, updateUser, updateCreditBalance, 
+            activeSpaceId, setActiveSpaceId, isReady 
+        }}>
             {children}
         </InformationContext.Provider>
     );

@@ -14,13 +14,15 @@ const calculateRelevance = (question: Question, user: Author): number => {
     let score = 0;
     const questionText = question.question.toLowerCase();
     
+    const userDetails = user.spaceDetails['sample-college'] || { department: '', clubs: [], workExperience: [] };
+
     // Check for department match
-    if (user.department && questionText.includes(user.department.toLowerCase())) {
+    if (userDetails.department && questionText.includes(userDetails.department.toLowerCase())) {
         score += 5;
     }
     
     // Check for club matches
-    user.clubs?.forEach(club => {
+    userDetails.clubs?.forEach(club => {
         if (club.name && questionText.includes(club.name.toLowerCase())) {
             score += 3;
         }
@@ -30,7 +32,7 @@ const calculateRelevance = (question: Question, user: Author): number => {
     });
 
     // Check for work experience matches
-    user.workExperience?.forEach(exp => {
+    userDetails.workExperience?.forEach(exp => {
         if (exp.organization && questionText.includes(exp.organization.toLowerCase())) {
             score += 3;
         }
@@ -48,8 +50,10 @@ const calculateRelevance = (question: Question, user: Author): number => {
 
 
 export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
-    const { questions, currentUser } = useInformation();
+    const { getSpaceData, currentUser } = useInformation();
     const [isClient, setIsClient] = useState(false);
+
+    const { questions } = getSpaceData();
 
     useEffect(() => {
         setIsClient(true);
@@ -100,6 +104,9 @@ export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
                     {query.displayText}
                 </Button>
             ))}
+             {sortedQueries.length === 0 && (
+                <p className="text-center text-muted-foreground">No open questions right now.</p>
+            )}
         </div>
     );
 }
