@@ -20,14 +20,12 @@ function HelpClientContent() {
     const [view, setView] = useState<HelpView>("open-queries");
     const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
     const [activeQuestion, setActiveQuestion] = useState<string>("");
-    const [activeQuestionSummary, setActiveQuestionSummary] = useState<string>("");
     const [activeAnswerId, setActiveAnswerId] = useState<string | null>(null);
     
     useEffect(() => {
         const viewParam = searchParams.get('view') as HelpView;
         const idParam = searchParams.get('id');
         const questionParam = searchParams.get('question');
-        const summaryParam = searchParams.get('summary');
         const answerIdParam = searchParams.get('answerId');
         
         if (viewParam) setView(viewParam);
@@ -41,11 +39,6 @@ function HelpClientContent() {
         
         if (questionParam) setActiveQuestion(decodeURIComponent(questionParam));
         else setActiveQuestion("");
-
-        if (summaryParam) setActiveQuestionSummary(decodeURIComponent(summaryParam));
-        else if (questionParam) setActiveQuestionSummary(decodeURIComponent(questionParam));
-        else setActiveQuestionSummary("");
-
 
     }, [searchParams]);
     
@@ -71,7 +64,7 @@ function HelpClientContent() {
                 break;
             case "answer-question":
             case "follow-up-question":
-                navigate("question-detail", { id: activeQuestionId!, question: activeQuestion, summary: activeQuestionSummary, from });
+                navigate("question-detail", { id: activeQuestionId!, question: activeQuestion, from });
                 break;
             default:
                 navigate("open-queries");
@@ -97,10 +90,10 @@ function HelpClientContent() {
 
         let title = "";
         switch(view) {
-            case "question-detail": title = activeQuestionSummary; break;
+            case "question-detail": title = activeQuestion; break;
             case "post-question": title = "Post a Question"; break;
-            case "answer-question": title = `Answer: ${activeQuestionSummary}`; break;
-            case "follow-up-question": title = `Follow-up: ${activeQuestionSummary}`; break;
+            case "answer-question": title = `Answer: ${activeQuestion}`; break;
+            case "follow-up-question": title = `Follow-up: ${activeQuestion}`; break;
         }
 
         return (
@@ -122,17 +115,17 @@ function HelpClientContent() {
         const from = searchParams.get('from') || 'open-queries';
         switch (view) {
             case "open-queries":
-                return <OpenQueries onQuestionSelect={(id, question, summary) => navigate("question-detail", { id, question, summary, from: 'open-queries' })} />;
+                return <OpenQueries onQuestionSelect={(id, q) => navigate("question-detail", { id, question: q, from: 'open-queries' })} />;
             case "your-queries":
-                return <YourQueries onQuestionSelect={(id, question, summary) => navigate("question-detail", { id, question, summary, from: 'your-queries' })} />;
+                return <YourQueries onQuestionSelect={(id, q) => navigate("question-detail", { id, question: q, from: 'your-queries' })} />;
             case "your-responses":
-                return <YourResponses onQuestionSelect={(id, question, summary) => navigate("question-detail", { id, question, summary, from: 'your-responses' })} />;
+                return <YourResponses onQuestionSelect={(id, q) => navigate("question-detail", { id, question: q, from: 'your-responses' })} />;
             case "question-detail":
                 if (!activeQuestionId) return <div>Question not found.</div>;
                 return <QuestionThread 
                             questionId={activeQuestionId} 
-                            onAnswer={(id, q, s) => navigate('answer-question', {id, question: q, summary: s, from})}
-                            onFollowUp={(qId, aId, q, s) => navigate('follow-up-question', {id: qId, answerId: aId, question: q, summary: s, from})}
+                            onAnswer={(id, q) => navigate('answer-question', {id, question: q, from})}
+                            onFollowUp={(qId, aId, q) => navigate('follow-up-question', {id: qId, answerId: aId, question: q, from})}
                         />;
             case "post-question":
                 return <PostEditor 
@@ -146,7 +139,7 @@ function HelpClientContent() {
                             mode="answer-question"
                             question={activeQuestion}
                             questionId={activeQuestionId}
-                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion, summary: activeQuestionSummary, from })}
+                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion, from })}
                         />;
             case "follow-up-question":
                  if (!activeQuestionId || !activeAnswerId) return <div>Question not found.</div>;
@@ -155,7 +148,7 @@ function HelpClientContent() {
                             question={activeQuestion}
                             questionId={activeQuestionId}
                             answerId={activeAnswerId}
-                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion, summary: activeQuestionSummary, from })}
+                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion, from })}
                         />;
             default:
                 return <div>Select a view</div>;

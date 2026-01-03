@@ -2,7 +2,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { summarizeQuestion } from '@/ai/flows/summarize-question';
 
 export interface Club {
   id: string;
@@ -312,12 +311,11 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         setEntries(prevEntries => [...prevEntries, { ...entry, id: `entry-${Date.now()}`, userId: currentUser.id }]);
     };
 
-    const addQuestion = async (question: Omit<Question, 'id' | 'answers' | 'relevance' | 'summary'>) => {
-        const { summary } = await summarizeQuestion({ question: question.question });
+    const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance' | 'summary'>) => {
         const newQuestion: Question = {
             ...question,
             id: `q-${Date.now()}`,
-            summary,
+            summary: question.question,
             answers: [],
             relevance: 'medium', // Default relevance
         };
@@ -361,12 +359,11 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         });
     };
 
-     const addFollowUp = async (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id' | 'summary'>, originalQuestion: string) => {
-        const { summary } = await summarizeQuestion({ question: followUp.question });
+     const addFollowUp = (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id' | 'summary'>, originalQuestion: string) => {
         const newFollowUp: Question = {
             ...followUp,
             id: `f-${Date.now()}`,
-            summary,
+            summary: followUp.question,
             answers: [],
             relevance: 'medium',
             isFollowUp: true,

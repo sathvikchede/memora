@@ -6,7 +6,7 @@ import { useInformation, Question, Author } from "@/context/information-context"
 import { useEffect, useState, useMemo } from "react";
 
 interface OpenQueriesProps {
-    onQuestionSelect: (id: string, question: string, summary: string) => void;
+    onQuestionSelect: (id: string, question: string) => void;
 }
 
 // Function to calculate relevance score
@@ -65,7 +65,7 @@ export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
                 if (q.author.id !== currentUser.id) {
                     allQueries.push({ 
                         ...q, 
-                        displayText: q.isFollowUp ? `Follow-up: ${q.summary}` : q.summary,
+                        displayText: q.isFollowUp ? `Follow-up: ${q.question}` : q.question,
                         parentId: parentId || q.id, // Ensure follow-ups point to the root question
                     });
                 }
@@ -95,7 +95,7 @@ export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
                     key={query.id} 
                     variant="outline" 
                     className="w-full justify-start h-auto text-left whitespace-normal"
-                    onClick={() => onQuestionSelect(query.parentId || query.id, query.question, query.summary)}
+                    onClick={() => onQuestionSelect(query.parentId || query.id, query.question)}
                 >
                     {query.displayText}
                 </Button>

@@ -6,7 +6,7 @@ import { useInformation } from "@/context/information-context";
 import { useState, useEffect } from "react";
 
 interface YourQueriesProps {
-    onQuestionSelect: (id: string, question: string, summary: string) => void;
+    onQuestionSelect: (id: string, question: string) => void;
 }
 
 export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
@@ -30,9 +30,9 @@ export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
                     key={query.id} 
                     variant="outline" 
                     className="w-full justify-start h-auto text-left whitespace-normal"
-                    onClick={() => onQuestionSelect(query.id, query.question, query.summary)}
+                    onClick={() => onQuestionSelect(query.id, query.question)}
                 >
-                    {query.summary}
+                    {query.question}
                 </Button>
             ))}
             {yourQueries.length === 0 && (
