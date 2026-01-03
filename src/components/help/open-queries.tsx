@@ -10,11 +10,11 @@ interface OpenQueriesProps {
 }
 
 // Function to calculate relevance score
-const calculateRelevance = (question: Question, user: Author): number => {
+const calculateRelevance = (question: Question, user: Author, activeSpaceId: string): number => {
     let score = 0;
     const questionText = question.question.toLowerCase();
     
-    const userDetails = user.spaceDetails['sample-college'] || { department: '', clubs: [], workExperience: [] };
+    const userDetails = (user.spaceDetails && user.spaceDetails[activeSpaceId]) || { department: '', clubs: [], workExperience: [] };
 
     // Check for department match
     if (userDetails.department && questionText.includes(userDetails.department.toLowerCase())) {
@@ -50,7 +50,7 @@ const calculateRelevance = (question: Question, user: Author): number => {
 
 
 export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
-    const { getSpaceData, currentUser } = useInformation();
+    const { getSpaceData, currentUser, activeSpaceId } = useInformation();
     const [isClient, setIsClient] = useState(false);
 
     const { questions } = getSpaceData();
@@ -83,8 +83,8 @@ export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
         processQuestions(questions);
 
         // Sort based on relevance score
-        return allQueries.sort((a, b) => calculateRelevance(b, currentUser) - calculateRelevance(a, currentUser));
-    }, [questions, currentUser, isClient]);
+        return allQueries.sort((a, b) => calculateRelevance(b, currentUser, activeSpaceId) - calculateRelevance(a, currentUser, activeSpaceId));
+    }, [questions, currentUser, isClient, activeSpaceId]);
 
 
     if (!isClient) {
