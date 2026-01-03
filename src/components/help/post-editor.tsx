@@ -33,40 +33,51 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
 
         let prefix = '';
         let suffix = '';
+        let placeholder = '';
 
         switch (style) {
             case 'bold':
                 prefix = '**';
                 suffix = '**';
+                placeholder = 'Bold Text';
                 break;
             case 'italic':
                 prefix = '_';
                 suffix = '_';
+                placeholder = 'Italic Text';
                 break;
             case 'underline':
-                // Note: Markdown doesn't have a standard underline. Using HTML tags.
                 prefix = '<u>';
                 suffix = '</u>';
+                placeholder = 'Underlined Text';
                 break;
             case 'h1':
                 prefix = '# ';
+                placeholder = 'Heading 1';
                 break;
             case 'h2':
                 prefix = '## ';
+                placeholder = 'Heading 2';
                 break;
             case 'h3':
                 prefix = '### ';
+                placeholder = 'Heading 3';
                 break;
         }
 
-        const newText = `${content.substring(0, start)}${prefix}${selectedText || style}${suffix}${content.substring(end)}`;
+        const textToInsert = selectedText || placeholder;
+        const newText = `${content.substring(0, start)}${prefix}${textToInsert}${suffix}${content.substring(end)}`;
         setContent(newText);
 
         textarea.focus();
         setTimeout(() => {
-            const newCursorPos = start + prefix.length + (selectedText ? selectedText.length : style.length);
-            textarea.selectionStart = newCursorPos;
-            textarea.selectionEnd = newCursorPos;
+            if (selectedText) {
+                textarea.selectionStart = start + prefix.length;
+                textarea.selectionEnd = start + prefix.length + selectedText.length;
+            } else {
+                textarea.selectionStart = start + prefix.length;
+                textarea.selectionEnd = start + prefix.length + placeholder.length;
+            }
         }, 0);
     };
 
