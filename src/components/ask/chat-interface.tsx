@@ -26,6 +26,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useInformation, Message } from "@/context/information-context";
 import { answerUserQuery, AnswerUserQueryInput } from "@/ai/flows/answer-user-queries-with-sources";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
+import ReactMarkdown from 'react-markdown';
 
 interface ChatInterfaceProps {
   chatId?: string | null;
@@ -256,33 +257,44 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
               )}
             >
               {message.sender === "ai" && (
-                <Avatar className="h-8 w-8 bg-white border-2 border-white rounded-full">
+                <Avatar className="h-8 w-8 flex-shrink-0 bg-white border-2 border-white rounded-full">
                   <AvatarFallback className="bg-transparent text-primary-foreground">
                   </AvatarFallback>
                 </Avatar>
               )}
-              <div
-                className={cn(
-                  "max-w-[75%] rounded-lg flex flex-col",
-                  message.sender === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                )}
-              >
-                <p className="text-sm p-3 whitespace-pre-wrap">{message.text}</p>
-                {message.showActions && (
-                    <div className="mt-2 flex items-center justify-stretch gap-px border-t">
-                        {message.text.includes("enough information") ? (
-                             <Button variant="ghost" size="sm" onClick={() => onPost && onPost(lastUserMessage?.text || '')} className="flex-1 rounded-t-none rounded-b-lg">Post</Button>
-                        ) : (
-                            <>
-                                <Button variant="ghost" size="sm" onClick={onShowSources} className="flex-1 rounded-t-none rounded-bl-lg">Sources</Button>
-                                <Button variant="ghost" size="sm" onClick={() => onPost && onPost(lastUserMessage?.text || '')} className="flex-1 rounded-t-none rounded-br-lg">Post</Button>
-                            </>
-                        )}
+              {message.sender === 'user' ? (
+                <div className="max-w-[75%] rounded-lg bg-primary text-primary-foreground p-3">
+                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                </div>
+              ) : (
+                <div className="flex w-full flex-col">
+                    <div className="prose prose-invert prose-sm max-w-none">
+                         <ReactMarkdown
+                            components={{
+                                h1: ({node, ...props}) => <h1 className="text-2xl font-bold" {...props} />,
+                                h2: ({node, ...props}) => <h2 className="text-xl font-semibold" {...props} />,
+                                h3: ({node, ...props}) => <h3 className="text-lg font-semibold" {...props} />,
+                                ul: ({node, ...props}) => <ul className="list-disc pl-5" {...props} />,
+                                ol: ({node, ...props}) => <ol className="list-decimal pl-5" {...props} />,
+                            }}
+                        >
+                            {message.text}
+                        </ReactMarkdown>
                     </div>
-                )}
-              </div>
+                     {message.showActions && (
+                        <div className="mt-4 flex items-center justify-start gap-2">
+                            {message.text.includes("enough information") ? (
+                                 <Button variant="secondary" size="sm" onClick={() => onPost && onPost(lastUserMessage?.text || '')}>Post Question</Button>
+                            ) : (
+                                <>
+                                    <Button variant="secondary" size="sm" onClick={onShowSources}>Sources</Button>
+                                    <Button variant="secondary" size="sm" onClick={() => onPost && onPost(lastUserMessage?.text || '')}>Post as Question</Button>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+              )}
             </div>
           ))}
            {isThinking && (
