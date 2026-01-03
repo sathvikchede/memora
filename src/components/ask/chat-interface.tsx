@@ -76,7 +76,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
 
   const handleSend = async () => {
     if (input.trim() || uploadedFiles.length > 0) {
-        if (currentUser.creditBalance < 10) {
+        if (currentUser.creditBalance < 1) {
             toast({
                 variant: "destructive",
                 title: "Insufficient Credits",
@@ -105,10 +105,10 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
         setInput("");
         setIsThinking(true);
         
-        updateCreditBalance(currentUser.id, -10);
+        updateCreditBalance(currentUser.id, -1);
         toast({
-            title: "Credits Deducted",
-            description: "10 credits have been deducted for this query.",
+            title: "Credit Deducted",
+            description: "1 credit has been deducted for this query.",
         });
 
         let aiResponseText = '';
