@@ -72,9 +72,6 @@ const answerUserQueryFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return {
-      answer: output?.answer || '',
-      sources: output?.sources || [],
-    };
+    return output || { answer: '', sources: [] };
   }
 );
