@@ -312,12 +312,19 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const updateCreditBalance = (userId: string, amount: number) => {
-        const updatedUsers = users.map(u => 
-            u.id === userId ? { ...u, creditBalance: Math.max(0, u.creditBalance + amount) } : u
-        );
+        const updatedUsers = users.map(u => {
+            if (u.id === userId) {
+                const currentBalance = u.creditBalance ?? 0;
+                return { ...u, creditBalance: Math.max(0, currentBalance + amount) };
+            }
+            return u;
+        });
         setUsers(updatedUsers);
         if (currentUser.id === userId) {
-            setCurrentUser(updatedUsers.find(u => u.id === userId)!);
+            const updatedCurrentUser = updatedUsers.find(u => u.id === userId);
+            if (updatedCurrentUser) {
+                setCurrentUser(updatedCurrentUser);
+            }
         }
     };
 
