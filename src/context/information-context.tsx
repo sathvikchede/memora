@@ -221,62 +221,60 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedEntries = localStorage.getItem('memora-entries');
-            if (savedEntries) setEntries(JSON.parse(savedEntries));
+        // This effect runs only on the client, after hydration
+        const savedEntries = localStorage.getItem('memora-entries');
+        if (savedEntries) setEntries(JSON.parse(savedEntries));
 
-            const savedQuestions = localStorage.getItem('memora-questions');
-            if (savedQuestions && JSON.parse(savedQuestions).length > 0) {
-                 setQuestions(JSON.parse(savedQuestions));
-            } else {
-                setQuestions(initialQuestions);
-            }
-            
-            const savedUsersJSON = localStorage.getItem(USERS_KEY);
-            let savedUsers = null;
-            if (savedUsersJSON) {
-                try {
-                    savedUsers = JSON.parse(savedUsersJSON);
-                } catch (e) {
-                    console.error("Failed to parse users from localStorage", e);
-                }
-            }
-
-            if(savedUsers && savedUsers.length === initialUsers.length) {
-                setUsers(savedUsers);
-            } else {
-                setUsers(initialUsers);
-                 localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
-            }
-            
-            const finalUsers = savedUsers && savedUsers.length === initialUsers.length ? savedUsers : initialUsers;
-            
-            const savedUser = localStorage.getItem('memora-current-user');
-            if(savedUser) {
-                const userToSet = finalUsers.find(u => u.id === JSON.parse(savedUser).id) || finalUsers[0];
-                setCurrentUserInternal(userToSet);
-            } else {
-                setCurrentUserInternal(finalUsers[0]);
-            }
-
-            const savedChatMessages = localStorage.getItem('memora-chat-messages');
-            if(savedChatMessages) {
-                setChatMessages(JSON.parse(savedChatMessages));
-            }
-
-            const savedRememberStates = localStorage.getItem('memora-remember-states');
-            if(savedRememberStates) {
-                setRememberStates(JSON.parse(savedRememberStates));
-            }
-
-            const savedChatHistory = localStorage.getItem('memora-chat-history');
-            if (savedChatHistory) {
-                setChatHistory(JSON.parse(savedChatHistory));
-            }
-
-
-            setIsReady(true);
+        const savedQuestions = localStorage.getItem('memora-questions');
+        if (savedQuestions && JSON.parse(savedQuestions).length > 0) {
+            setQuestions(JSON.parse(savedQuestions));
+        } else {
+            setQuestions(initialQuestions);
         }
+        
+        const savedUsersJSON = localStorage.getItem(USERS_KEY);
+        let savedUsers = null;
+        if (savedUsersJSON) {
+            try {
+                savedUsers = JSON.parse(savedUsersJSON);
+            } catch (e) {
+                console.error("Failed to parse users from localStorage", e);
+            }
+        }
+
+        if(savedUsers && savedUsers.length === initialUsers.length) {
+            setUsers(savedUsers);
+        } else {
+            setUsers(initialUsers);
+            localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
+        }
+        
+        const finalUsers = savedUsers && savedUsers.length === initialUsers.length ? savedUsers : initialUsers;
+        
+        const savedUser = localStorage.getItem('memora-current-user');
+        if(savedUser) {
+            const userToSet = finalUsers.find(u => u.id === JSON.parse(savedUser).id) || finalUsers[0];
+            setCurrentUserInternal(userToSet);
+        } else {
+            setCurrentUserInternal(finalUsers[0]);
+        }
+
+        const savedChatMessages = localStorage.getItem('memora-chat-messages');
+        if(savedChatMessages) {
+            setChatMessages(JSON.parse(savedChatMessages));
+        }
+
+        const savedRememberStates = localStorage.getItem('memora-remember-states');
+        if(savedRememberStates) {
+            setRememberStates(JSON.parse(savedRememberStates));
+        }
+
+        const savedChatHistory = localStorage.getItem('memora-chat-history');
+        if (savedChatHistory) {
+            setChatHistory(JSON.parse(savedChatHistory));
+        }
+
+        setIsReady(true);
     }, []);
 
     useEffect(() => { if (isReady) localStorage.setItem('memora-entries', JSON.stringify(entries)); }, [entries, isReady]);
