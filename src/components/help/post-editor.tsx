@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Bold, Italic, Underline, Image as ImageIcon, Paperclip, UserX } from "lucide-react";
 import { useInformation } from '@/context/information-context';
 import ReactMarkdown from 'react-markdown';
+import { useToast } from '@/hooks/use-toast';
 
 interface PostEditorProps {
     mode: "post-question" | "answer-question" | "follow-up-question";
@@ -22,7 +23,8 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
-    const { currentUser, addQuestion, addAnswer, addFollowUp } = useInformation();
+    const { currentUser, addQuestion, addAnswer, addFollowUp, updateCreditBalance } = useInformation();
+    const { toast } = useToast();
 
     const applyStyle = (style: 'bold' | 'italic' | 'underline' | 'h1' | 'h2' | 'h3') => {
         const textarea = editorRef.current;
@@ -139,6 +141,8 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
             ? { id: 'anonymous', name: "Anonymous", department: "Unknown", avatar: "/avatars/anonymous.png" }
             : currentUser;
 
+        let awardedCredits = false;
+
         switch (mode) {
             case "post-question":
                 addQuestion({ question: content, author });
@@ -146,6 +150,7 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
             case "answer-question":
                 if(questionId) {
                     addAnswer(questionId, { text: content, author, upvotes: 0, downvotes: 0 }, question);
+                    awardedCredits = true;
                 }
                 break;
             case "follow-up-question":
@@ -154,6 +159,15 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 }
                 break;
         }
+
+        if (awardedCredits && !isAnonymous) {
+            updateCreditBalance(currentUser.id, 15);
+            toast({
+                title: "Credits Awarded!",
+                description: "You've earned 15 credits for your contribution.",
+            });
+        }
+        
         onPost();
     }
 

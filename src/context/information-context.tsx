@@ -25,6 +25,7 @@ export interface Author {
     year: string;
     clubs: Club[];
     workExperience: WorkExperience[];
+    creditBalance: number;
 }
 
 export interface Answer {
@@ -102,7 +103,8 @@ const initialUsers: Author[] = [
         ],
         workExperience: [
             { id: 'w1', organization: 'Google', employmentType: 'intern', position: 'Software Engineer Intern', startDate: '01062023', endDate: '31082023' }
-        ]
+        ],
+        creditBalance: 0,
     },
     { 
         id: 'user-2', 
@@ -113,11 +115,12 @@ const initialUsers: Author[] = [
         clubs: [
             { id: 'c3', name: 'Entrepreneurship Club', position: 'Vice President' }
         ],
-        workExperience: []
+        workExperience: [],
+        creditBalance: 0,
     },
-    { id: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png', year: '2nd Year', clubs: [], workExperience: [] },
-    { id: 'user-4', name: 'David', department: 'Marketing', avatar: '/avatars/david.png', year: '1st Year', clubs: [], workExperience: [] },
-    { id: 'user-5', name: 'Eva', department: 'Data Science', avatar: '/avatars/eva.png', year: '3rd Year', clubs: [{id: 'c4', name: 'Coding Club', position: 'Treasurer'}], workExperience: [] },
+    { id: 'user-3', name: 'Clara', department: 'Design', avatar: '/avatars/clara.png', year: '2nd Year', clubs: [], workExperience: [], creditBalance: 0 },
+    { id: 'user-4', name: 'David', department: 'Marketing', avatar: '/avatars/david.png', year: '1st Year', clubs: [], workExperience: [], creditBalance: 0 },
+    { id: 'user-5', name: 'Eva', department: 'Data Science', avatar: '/avatars/eva.png', year: '3rd Year', clubs: [{id: 'c4', name: 'Coding Club', position: 'Treasurer'}], workExperience: [], creditBalance: 0 },
 ];
 
 const initialQuestions: Question[] = [
@@ -197,6 +200,7 @@ interface InformationContextType {
     updateUser: (user: Author) => void;
     upvoteAnswer: (questionId: string, answerId: string) => void;
     downvoteAnswer: (questionId: string, answerId: string) => void;
+    updateCreditBalance: (userId: string, amount: number) => void;
     
     // Chat
     chatMessages: ChatMessage[];
@@ -304,6 +308,16 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         setUsers(updatedUsers);
         if (currentUser.id === updatedUser.id) {
             setCurrentUser(updatedUser);
+        }
+    };
+
+    const updateCreditBalance = (userId: string, amount: number) => {
+        const updatedUsers = users.map(u => 
+            u.id === userId ? { ...u, creditBalance: Math.max(0, u.creditBalance + amount) } : u
+        );
+        setUsers(updatedUsers);
+        if (currentUser.id === userId) {
+            setCurrentUser(updatedUsers.find(u => u.id === userId)!);
         }
     };
 
@@ -500,7 +514,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
 
 
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users, currentUser, setCurrentUser, updateUser, upvoteAnswer, downvoteAnswer, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, chatHistory, addHistoryItem, addMessageToHistory, getChatHistoryItem, isReady }}>
+        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users, currentUser, setCurrentUser, updateUser, upvoteAnswer, downvoteAnswer, updateCreditBalance, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, chatHistory, addHistoryItem, addMessageToHistory, getChatHistoryItem, isReady }}>
             {children}
         </InformationContext.Provider>
     );
@@ -513,5 +527,3 @@ export const useInformation = () => {
     }
     return context;
 };
-
-    

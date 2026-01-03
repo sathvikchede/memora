@@ -56,7 +56,7 @@ export function Header({ activeTab }: HeaderProps) {
             variant="outline"
             className="pointer-events-none hidden rounded-full md:flex"
           >
-            1500 Credits
+            {currentUser.creditBalance} Credits
           </Button>
         </div>
       </header>
@@ -64,5 +64,3 @@ export function Header({ activeTab }: HeaderProps) {
     </>
   );
 }
-
-    

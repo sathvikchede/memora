@@ -29,6 +29,7 @@ import { useInformation, Entry } from "@/context/information-context";
 import { Separator } from "@/components/ui/separator";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
 import { summarizeUserInformation, SummarizeUserInformationInput } from "@/ai/flows/summarize-user-information";
+import { useToast } from "@/hooks/use-toast";
 
 interface UploadedFile {
   id: string;
@@ -38,7 +39,8 @@ interface UploadedFile {
 }
 
 export function AddClient() {
-  const { entries, addEntry, currentUser } = useInformation();
+  const { entries, addEntry, currentUser, updateCreditBalance } = useInformation();
+  const { toast } = useToast();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
@@ -58,6 +60,7 @@ export function AddClient() {
     if (input.trim() || uploadedFiles.length > 0) {
       setIsSending(true);
       let newEntryData: Omit<Entry, 'id' | 'userId'> | null = null;
+      let awardedCredits = false;
 
       if (uploadedFiles.length > 0) {
         for (const file of uploadedFiles) {
@@ -75,6 +78,7 @@ export function AddClient() {
                     status: 'success'
                 };
                 addEntry(newEntryData);
+                awardedCredits = true;
             } catch (error) {
                 console.error("Error processing file:", error);
                  newEntryData = {
@@ -102,6 +106,7 @@ export function AddClient() {
             status: 'success'
           };
           addEntry(newEntryData);
+          awardedCredits = true;
         } catch (error) {
           console.error("Error summarizing information:", error);
           newEntryData = {
@@ -117,6 +122,13 @@ export function AddClient() {
       
       if (newEntryData) {
           setLatestEntry({ ...newEntryData, id: `entry-${Date.now()}`, userId: currentUser.id });
+      }
+      if (awardedCredits && !isAnonymous) {
+          updateCreditBalance(currentUser.id, 15);
+          toast({
+              title: "Credits Awarded!",
+              description: "You've earned 15 credits for your contribution.",
+          });
       }
       setInput("");
       setUploadedFiles([]);
@@ -390,5 +402,3 @@ export function AddClient() {
     </div>
   );
 }
-
-    

@@ -27,6 +27,7 @@ import { useInformation, Message, Entry } from "@/context/information-context";
 import { answerUserQuery, AnswerUserQueryInput } from "@/ai/flows/answer-user-queries-with-sources";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
 import ReactMarkdown from 'react-markdown';
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatInterfaceProps {
   chatId?: string | null;
@@ -47,7 +48,7 @@ const initialMessages: Message[] = [
 ];
 
 export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: ChatInterfaceProps) {
-  const { entries, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem, currentUser } = useInformation();
+  const { entries, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem, currentUser, updateCreditBalance } = useInformation();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -59,6 +60,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (chatId) {
@@ -74,6 +76,15 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
 
   const handleSend = async () => {
     if (input.trim() || uploadedFiles.length > 0) {
+        if (currentUser.creditBalance < 10) {
+            toast({
+                variant: "destructive",
+                title: "Insufficient Credits",
+                description: "You don't have enough credits to ask a question.",
+            });
+            return;
+        }
+
         setMessages(prev => prev.map(m => ({ ...m, showActions: false })));
         const userMessageText = input.trim();
         const userMessage: Message = { id: `user-${Date.now()}`, text: userMessageText, sender: 'user' };
@@ -94,6 +105,12 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
         setInput("");
         setIsThinking(true);
         
+        updateCreditBalance(currentUser.id, -10);
+        toast({
+            title: "Credits Deducted",
+            description: "10 credits have been deducted for this query.",
+        });
+
         let aiResponseText = '';
         let sourcesForAnswer: any[] = [];
 
