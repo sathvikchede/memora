@@ -137,6 +137,11 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                 const result = await answerUserQuery(queryInput);
                 aiResponseText = result.answer;
                 sourcesForAnswer = result.sources;
+
+                if (!aiResponseText) {
+                    aiResponseText = `I don't have enough information to answer that question. You can add more information or post this question to the community.`;
+                }
+
             } catch (error) {
                 console.error("Error calling AI flow:", error);
                 aiResponseText = "Sorry, I encountered an error while processing your request.";
@@ -400,5 +405,3 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
     </div>
   );
 }
-
-    

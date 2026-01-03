@@ -44,6 +44,8 @@ const prompt = ai.definePrompt({
 
   When generating your answer, you MUST determine which of the provided sources were used to create the answer. You will then return only those specific sources in the output.
   
+  If you cannot find a relevant answer from the provided summaries, you MUST return an empty string for the "answer" field and an empty array for the "sources" field. DO NOT make up an answer or explain that you don't have enough information.
+  
   Please format the text with a clear structure. Use headings, subheadings, and lists (bulleted or numbered) where it makes sense to improve readability.
 
   Summaries:
@@ -70,7 +72,7 @@ const answerUserQueryFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
     return {
-      answer: output?.answer || 'No answer could be generated based on the provided information.',
+      answer: output?.answer || '',
       sources: output?.sources || [],
     };
   }
