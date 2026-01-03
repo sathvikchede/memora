@@ -21,25 +21,30 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
         return null;
     }
     
-    const yourResponses: {id: string, question: string, parentId?: string}[] = [];
+    const yourResponses: {id: string, question: string, rootQuestion: string}[] = [];
 
-    const findResponses = (qs: Question[]) => {
+    const findResponses = (qs: Question[], rootQuestion: Question) => {
         qs.forEach(q => {
             q.answers.forEach(a => {
                 if (a.author.id === currentUser.id) {
-                    yourResponses.push({ id: q.id, question: q.question });
+                    // Always add the root question's ID and text for navigation
+                    yourResponses.push({ id: rootQuestion.id, question: q.question, rootQuestion: rootQuestion.question });
                 }
                 if (a.followUps) {
-                    findResponses(a.followUps);
+                    // Pass the same rootQuestion down the recursion
+                    findResponses(a.followUps, rootQuestion);
                 }
             })
         })
     }
 
-    findResponses(questions);
+    // Iterate through top-level questions, treating each as a potential root
+    questions.forEach(rootQ => {
+        findResponses([rootQ], rootQ);
+    });
     
+    // Ensure the list is unique based on the root question ID
     const uniqueResponses = Array.from(new Map(yourResponses.map(item => [item.id, item])).values());
-
 
     return (
         <div className="space-y-2">
@@ -48,9 +53,10 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
                     key={query.id} 
                     variant="outline" 
                     className="w-full justify-start h-auto text-left whitespace-normal"
-                    onClick={() => onQuestionSelect(query.parentId || query.id, query.question)}
+                    // Navigate using the root question's ID and text
+                    onClick={() => onQuestionSelect(query.id, query.rootQuestion)}
                 >
-                    You answered: {query.question}
+                    You answered: {query.rootQuestion}
                 </Button>
             ))}
              {yourResponses.length === 0 && (
@@ -59,5 +65,3 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
         </div>
     );
 }
-
-    
