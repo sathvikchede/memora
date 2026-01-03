@@ -27,14 +27,16 @@ import { cn } from '@/lib/utils';
 
 
 export function SpaceClient() {
-  const { currentUser, updateUser, activeSpaceId, setActiveSpaceId } = useInformation();
+  const { currentUser, updateUser, activeSpaceId, setActiveSpaceId, isReady } = useInformation();
   const { toast } = useToast();
   
-  const [currentSpaceDetails, setCurrentSpaceDetails] = useState<SpaceUserDetail>(currentUser.spaceDetails[activeSpaceId] || {});
+  const [currentSpaceDetails, setCurrentSpaceDetails] = useState<SpaceUserDetail>({});
 
   useEffect(() => {
-    setCurrentSpaceDetails(currentUser.spaceDetails[activeSpaceId] || {});
-  }, [currentUser, activeSpaceId]);
+    if (isReady && currentUser) {
+      setCurrentSpaceDetails(currentUser.spaceDetails?.[activeSpaceId] || {});
+    }
+  }, [currentUser, activeSpaceId, isReady]);
 
   const handleDetailChange = (field: keyof SpaceUserDetail, value: any) => {
     setCurrentSpaceDetails(prev => ({...prev, [field]: value}));
@@ -89,6 +91,14 @@ export function SpaceClient() {
     { id: 'sample-college', name: 'Sample College' },
     { id: 'griet-college', name: 'GRIET College' }
   ];
+
+  if (!isReady || !currentUser) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
