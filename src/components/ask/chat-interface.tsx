@@ -105,14 +105,9 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
         setInput("");
         setIsThinking(true);
         
-        updateCreditBalance(currentUser.id, -1);
-        toast({
-            title: "Credit Deducted",
-            description: "1 credit has been deducted for this query.",
-        });
-
         let aiResponseText = '';
         let sourcesForAnswer: any[] = [];
+        let creditDeducted = false;
 
         if (uploadedFiles.length > 0) {
             const file = uploadedFiles[0];
@@ -157,6 +152,10 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
 
                 if (!aiResponseText) {
                     aiResponseText = `I don't have enough information to answer that question. You can add more information or post this question to the community.`;
+                } else {
+                    // Deduct credit only if a valid answer is found
+                    updateCreditBalance(currentUser.id, -1);
+                    creditDeducted = true;
                 }
 
             } catch (error) {
@@ -165,6 +164,13 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
             }
         }
         
+        if (creditDeducted) {
+            toast({
+                title: "Credit Deducted",
+                description: "1 credit has been deducted for this query.",
+            });
+        }
+
         const aiResponse: Message = { 
             id: `ai-${Date.now()}`, 
             text: aiResponseText, 
@@ -422,3 +428,5 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
     </div>
   );
 }
+
+    
