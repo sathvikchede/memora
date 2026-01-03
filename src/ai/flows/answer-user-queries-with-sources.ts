@@ -28,8 +28,8 @@ const AnswerUserQueryInputSchema = z.object({
 export type AnswerUserQueryInput = z.infer<typeof AnswerUserQueryInputSchema>;
 
 const AnswerUserQueryOutputSchema = z.object({
-  answer: z.string().describe('The answer to the user query.'),
-  sources: z.array(SourceSchema).describe('The sources used to generate the answer.'),
+  answer: z.string().describe("The answer to the user query. If no relevant information is found, this should be an empty string."),
+  sources: z.array(SourceSchema).describe('The sources used to generate the answer. If no answer is generated, this should be an empty array.'),
 });
 export type AnswerUserQueryOutput = z.infer<typeof AnswerUserQueryOutputSchema>;
 
@@ -41,13 +41,14 @@ const prompt = ai.definePrompt({
   name: 'answerUserQueryPrompt',
   input: {schema: AnswerUserQueryInputSchema},
   output: {schema: AnswerUserQueryOutputSchema},
-  prompt: `You are an AI assistant for an information space called {{{activeSpaceId}}}. Your primary goal is to synthesize the information from the given summaries to formulate a comprehensive answer to the user's query.
+  prompt: `You are an AI assistant for an information space. Your task is to answer the user's query based ONLY on the summaries provided.
 
-  When generating your answer, you MUST determine which of the provided sources were used. You will then return only those specific sources in the output.
-  
-  If the provided summaries do not contain enough information to answer the query, you MUST return an empty string for the "answer" field and an empty array for the "sources" field.
-  
-  Please format the text with a clear structure. Use headings, subheadings, and lists (bulleted or numbered) where it makes sense to improve readability.
+  - Synthesize the information from the summaries to create a comprehensive answer.
+  - After creating the answer, identify which of the "Available Sources" you used.
+  - If the summaries do not contain information to answer the query, return an empty string for the "answer" field and an empty array for the "sources" field.
+  - Format your answer with clear structure (headings, lists) for readability.
+
+  Query: {{{query}}}
 
   Summaries:
   {{#each summaries}}
@@ -57,11 +58,7 @@ const prompt = ai.definePrompt({
   Available Sources:
   {{#each sources}}
   - Contributor: {{{contributor}}}, Raw Information: {{{rawInformation}}}, Date: {{{date}}}, Type: {{{type}}}
-  {{/each}}
-
-  Query: {{{query}}}
-
-  Based on the summaries for the current space, provide a detailed answer and identify the exact sources you used from the "Available Sources" list.`,
+  {{/each}}`,
 });
 
 const answerUserQueryFlow = ai.defineFlow(
