@@ -88,7 +88,7 @@ export function AskClient() {
     }
 
     return (
-      <div className="relative flex w-full items-center justify-center">
+      <div className="relative flex h-14 w-full items-center justify-center">
           <div className="absolute left-0">
             <Button variant="ghost" className="w-auto" onClick={backAction}>
                 <ChevronLeft className="md:mr-2" />
@@ -168,5 +168,3 @@ export function AskClient() {
     </div>
   );
 }
-
-    
