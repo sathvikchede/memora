@@ -48,7 +48,7 @@ const initialMessages: Message[] = [
 ];
 
 export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: ChatInterfaceProps) {
-  const { getSpaceData, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem, currentUser, updateCreditBalance } = useInformation();
+  const { getSpaceData, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem, currentUser, updateCreditBalance, activeSpaceId } = useInformation();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -145,6 +145,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                     date: e.date,
                     type: e.type,
                 })),
+                activeSpaceId: activeSpaceId,
             };
 
             try {

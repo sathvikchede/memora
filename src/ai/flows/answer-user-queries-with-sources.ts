@@ -23,6 +23,7 @@ const AnswerUserQueryInputSchema = z.object({
   query: z.string().describe('The user query.'),
   summaries: z.array(z.string()).describe('The relevant summaries.'),
   sources: z.array(SourceSchema).describe('The sources of the summaries.'),
+  activeSpaceId: z.string().describe('The ID of the currently active space.'),
 });
 export type AnswerUserQueryInput = z.infer<typeof AnswerUserQueryInputSchema>;
 
@@ -40,7 +41,9 @@ const prompt = ai.definePrompt({
   name: 'answerUserQueryPrompt',
   input: {schema: AnswerUserQueryInputSchema},
   output: {schema: AnswerUserQueryOutputSchema},
-  prompt: `You are an AI assistant that answers user queries based on provided summaries and sources. Your primary goal is to synthesize the information from the given summaries to formulate a comprehensive answer.
+  prompt: `You are an AI assistant that answers user queries based on provided summaries and sources within a specific information space. Your primary goal is to synthesize the information from the given summaries to formulate a comprehensive answer.
+
+  The current information space is identified by: {{{activeSpaceId}}}.
 
   When generating your answer, you MUST determine which of the provided sources were used to create the answer. You will then return only those specific sources in the output.
   
@@ -60,7 +63,7 @@ const prompt = ai.definePrompt({
 
   Query: {{{query}}}
 
-  Based on the summaries, provide a detailed answer and identify the exact sources you used from the "Available Sources" list.`,
+  Based on the summaries for the current space, provide a detailed answer and identify the exact sources you used from the "Available Sources" list.`,
 });
 
 const answerUserQueryFlow = ai.defineFlow(
