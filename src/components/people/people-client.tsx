@@ -81,7 +81,7 @@ export function PeopleClient() {
 
   const filteredUsers = users.filter((user) => {
     if (user.id === currentUser.id) return false;
-    const spaceDetails = user.spaceDetails[activeSpaceId] || { department: '', clubs: [], workExperience: [] };
+    const spaceDetails = (user.spaceDetails && user.spaceDetails[activeSpaceId]) || { department: '', year: '', clubs: [], workExperience: [] };
     const searchString = [
       user.name,
       spaceDetails.year,
@@ -115,7 +115,7 @@ export function PeopleClient() {
             <UserCard 
                 key={user.id} 
                 user={user} 
-                spaceDetails={user.spaceDetails[activeSpaceId] || {}}
+                spaceDetails={(user.spaceDetails && user.spaceDetails[activeSpaceId]) || {}}
             />
           ))}
         </div>
