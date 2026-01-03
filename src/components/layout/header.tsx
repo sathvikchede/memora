@@ -28,16 +28,9 @@ export function Header({ activeTab }: HeaderProps) {
 
   return (
     <>
-      <header className="relative flex h-14 items-center gap-4 px-4 sm:px-6">
-        <SidebarTrigger className="md:hidden" />
-        <div className="flex flex-1 items-center justify-center">
-          {activeTab && (
-            <span className="text-xl font-semibold text-white">
-              {activeTab}
-            </span>
-          )}
-        </div>
-        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2">
+      <header className="relative flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex items-center gap-2">
+          <SidebarTrigger className="md:hidden" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="rounded-full">
@@ -46,7 +39,7 @@ export function Header({ activeTab }: HeaderProps) {
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="start">
               {spaces.map((space) => (
                 <DropdownMenuItem
                   key={space.id}
@@ -58,7 +51,17 @@ export function Header({ activeTab }: HeaderProps) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          
+        </div>
+
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          {activeTab && (
+            <span className="text-xl font-semibold text-white">
+              {activeTab}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="rounded-full">
