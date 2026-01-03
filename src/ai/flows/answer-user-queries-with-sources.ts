@@ -23,7 +23,6 @@ const AnswerUserQueryInputSchema = z.object({
   query: z.string().describe('The user query.'),
   summaries: z.array(z.string()).describe('The relevant summaries.'),
   sources: z.array(SourceSchema).describe('The sources of the summaries.'),
-  activeSpaceId: z.string().describe('The ID of the currently active space.'),
 });
 export type AnswerUserQueryInput = z.infer<typeof AnswerUserQueryInputSchema>;
 
@@ -41,24 +40,23 @@ const prompt = ai.definePrompt({
   name: 'answerUserQueryPrompt',
   input: {schema: AnswerUserQueryInputSchema},
   output: {schema: AnswerUserQueryOutputSchema},
-  prompt: `You are an AI assistant for an information space. Your task is to answer the user's query based ONLY on the summaries provided.
+  prompt: `You are an AI assistant. Your task is to answer the user's query based ONLY on the provided summaries.
 
-  - Synthesize the information from the summaries to create a comprehensive answer.
-  - After creating the answer, identify which of the "Available Sources" you used.
-  - If the summaries do not contain information to answer the query, return an empty string for the "answer" field and an empty array for the "sources" field.
-  - Format your answer with clear structure (headings, lists) for readability.
+- Synthesize the information from the summaries to create a comprehensive answer.
+- After creating the answer, identify which of the "Available Sources" were used.
+- If the summaries do not contain information to answer the query, return an empty string for the "answer" field and an empty array for the "sources" field.
 
-  Query: {{{query}}}
+Query: {{{query}}}
 
-  Summaries:
-  {{#each summaries}}
-  - {{{this}}}
-  {{/each}}
+Summaries:
+{{#each summaries}}
+- {{{this}}}
+{{/each}}
 
-  Available Sources:
-  {{#each sources}}
-  - Contributor: {{{contributor}}}, Raw Information: {{{rawInformation}}}, Date: {{{date}}}, Type: {{{type}}}
-  {{/each}}`,
+Available Sources:
+{{#each sources}}
+- Contributor: {{{contributor}}}, Raw Information: {{{rawInformation}}}, Date: {{{date}}}, Type: {{{type}}}
+{{/each}}`,
 });
 
 const answerUserQueryFlow = ai.defineFlow(

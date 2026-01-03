@@ -10,19 +10,17 @@ interface OpenQueriesProps {
 }
 
 // Function to calculate relevance score
-const calculateRelevance = (question: Question, user: Author, activeSpaceId: string): number => {
+const calculateRelevance = (question: Question, user: Author): number => {
     let score = 0;
     const questionText = question.question.toLowerCase();
     
-    const userDetails = (user.spaceDetails && user.spaceDetails[activeSpaceId]) || { department: '', clubs: [], workExperience: [] };
-
     // Check for department match
-    if (userDetails.department && questionText.includes(userDetails.department.toLowerCase())) {
+    if (user.department && questionText.includes(user.department.toLowerCase())) {
         score += 5;
     }
     
     // Check for club matches
-    userDetails.clubs?.forEach(club => {
+    user.clubs.forEach(club => {
         if (club.name && questionText.includes(club.name.toLowerCase())) {
             score += 3;
         }
@@ -32,7 +30,7 @@ const calculateRelevance = (question: Question, user: Author, activeSpaceId: str
     });
 
     // Check for work experience matches
-    userDetails.workExperience?.forEach(exp => {
+    user.workExperience.forEach(exp => {
         if (exp.organization && questionText.includes(exp.organization.toLowerCase())) {
             score += 3;
         }
@@ -50,10 +48,8 @@ const calculateRelevance = (question: Question, user: Author, activeSpaceId: str
 
 
 export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
-    const { getSpaceData, currentUser, activeSpaceId } = useInformation();
+    const { questions, currentUser } = useInformation();
     const [isClient, setIsClient] = useState(false);
-
-    const { questions } = getSpaceData();
 
     useEffect(() => {
         setIsClient(true);
@@ -83,8 +79,8 @@ export function OpenQueries({ onQuestionSelect }: OpenQueriesProps) {
         processQuestions(questions);
 
         // Sort based on relevance score
-        return allQueries.sort((a, b) => calculateRelevance(b, currentUser, activeSpaceId) - calculateRelevance(a, currentUser, activeSpaceId));
-    }, [questions, currentUser, isClient, activeSpaceId]);
+        return allQueries.sort((a, b) => calculateRelevance(b, currentUser) - calculateRelevance(a, currentUser));
+    }, [questions, currentUser, isClient]);
 
 
     if (!isClient) {

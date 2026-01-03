@@ -12,17 +12,12 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useInformation, Author, SpaceUserDetail } from '@/context/information-context';
+import { useInformation, Author } from '@/context/information-context';
 import { Search } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { useRouter } from 'next/navigation';
 
-interface UserCardProps {
-  user: Author;
-  spaceDetails: SpaceUserDetail;
-}
-
-function UserCard({ user, spaceDetails }: UserCardProps) {
+function UserCard({ user }: { user: Author }) {
   const router = useRouter();
   const fullName = user.name;
 
@@ -40,17 +35,17 @@ function UserCard({ user, spaceDetails }: UserCardProps) {
         <div className="flex-1">
           <CardTitle>{fullName}</CardTitle>
           <CardDescription>
-            {spaceDetails.year} - {spaceDetails.department}
+            {user.year} - {user.department}
           </CardDescription>
         </div>
         <Button onClick={handleChatClick}>Chat</Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        {spaceDetails.clubs && spaceDetails.clubs.length > 0 && (
+        {user.clubs && user.clubs.length > 0 && (
           <div>
             <h4 className="mb-2 font-semibold">Clubs</h4>
             <ul className="list-disc space-y-1 pl-5 text-sm">
-              {spaceDetails.clubs.map((club) => (
+              {user.clubs.map((club) => (
                 <li key={club.id}>
                   {club.name} - {club.position}
                 </li>
@@ -58,11 +53,11 @@ function UserCard({ user, spaceDetails }: UserCardProps) {
             </ul>
           </div>
         )}
-        {spaceDetails.workExperience && spaceDetails.workExperience.length > 0 && (
+        {user.workExperience && user.workExperience.length > 0 && (
           <div>
             <h4 className="mb-2 font-semibold">Experience</h4>
             <ul className="list-disc space-y-1 pl-5 text-sm">
-              {spaceDetails.workExperience.map((exp) => (
+              {user.workExperience.map((exp) => (
                 <li key={exp.id}>
                   {exp.position} at {exp.organization} ({exp.employmentType})
                 </li>
@@ -76,18 +71,17 @@ function UserCard({ user, spaceDetails }: UserCardProps) {
 }
 
 export function PeopleClient() {
-  const { users, currentUser, activeSpaceId } = useInformation();
+  const { users, currentUser } = useInformation();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredUsers = users.filter((user) => {
     if (user.id === currentUser.id) return false;
-    const spaceDetails = (user.spaceDetails && user.spaceDetails[activeSpaceId]) || { department: '', year: '', clubs: [], workExperience: [] };
     const searchString = [
       user.name,
-      spaceDetails.year,
-      spaceDetails.department,
-      ...(spaceDetails.clubs?.map((c) => `${c.name} ${c.position}`) || []),
-      ...(spaceDetails.workExperience?.map(
+      user.year,
+      user.department,
+      ...(user.clubs?.map((c) => `${c.name} ${c.position}`) || []),
+      ...(user.workExperience?.map(
         (w) => `${w.position} ${w.organization} ${w.employmentType}`
       ) || []),
     ]
@@ -112,11 +106,7 @@ export function PeopleClient() {
       <ScrollArea className="flex-1 pr-4">
         <div className="space-y-4 pb-4">
           {filteredUsers.map((user) => (
-            <UserCard 
-                key={user.id} 
-                user={user} 
-                spaceDetails={(user.spaceDetails && user.spaceDetails[activeSpaceId]) || {}}
-            />
+            <UserCard key={user.id} user={user} />
           ))}
         </div>
       </ScrollArea>

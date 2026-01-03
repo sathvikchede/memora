@@ -50,7 +50,8 @@ function HelpClientContent() {
         newParams.set('view', newView);
         if (params) {
             Object.entries(params).forEach(([key, value]) => {
-                if (value) newParams.set(key, value);
+                if (value !== undefined) newParams.set(key, value);
+                else newParams.delete(key);
             });
         }
         router.push(`/help?${newParams.toString()}`);
@@ -68,9 +69,9 @@ function HelpClientContent() {
             case "answer-question":
             case "follow-up-question":
                 const questionToReturn = getQuestionById(activeQuestionId!);
-                const rootQuestionId = questionToReturn?.parentId || questionToReturn?.id;
-                const rootQuestionText = getQuestionById(rootQuestionId!)?.question || activeQuestion;
-                navigate("question-detail", { id: rootQuestionId!, question: rootQuestionText, from });
+                const rootQuestionId = questionToReturn?.parentId || activeQuestionId!;
+                const rootQuestionText = getQuestionById(rootQuestionId)?.question || activeQuestion;
+                navigate("question-detail", { id: rootQuestionId, question: rootQuestionText, from });
                 break;
             default:
                 navigate("open-queries");
@@ -142,8 +143,8 @@ function HelpClientContent() {
             case "answer-question":
                  if (!activeQuestionId) return <div>Question not found.</div>;
                  const questionToReturnFromAnswer = getQuestionById(activeQuestionId!);
-                 const rootQuestionIdFromAnswer = questionToReturnFromAnswer?.parentId || questionToReturnFromAnswer?.id;
-                 const rootQuestionTextFromAnswer = getQuestionById(rootQuestionIdFromAnswer!)?.question || activeQuestion;
+                 const rootQuestionIdFromAnswer = questionToReturnFromAnswer?.parentId || activeQuestionId!;
+                 const rootQuestionTextFromAnswer = getQuestionById(rootQuestionIdFromAnswer)?.question || activeQuestion;
 
                 return <PostEditor 
                             mode="answer-question"
@@ -154,8 +155,8 @@ function HelpClientContent() {
             case "follow-up-question":
                  if (!activeQuestionId || !activeAnswerId) return <div>Question not found.</div>;
                  const questionToReturnFromFollowUp = getQuestionById(activeQuestionId!);
-                 const rootQuestionIdFromFollowUp = questionToReturnFromFollowUp?.parentId || questionToReturnFromFollowUp?.id;
-                 const rootQuestionTextFromFollowUp = getQuestionById(rootQuestionIdFromFollowUp!)?.question || activeQuestion;
+                 const rootQuestionIdFromFollowUp = questionToReturnFromFollowUp?.parentId || activeQuestionId!;
+                 const rootQuestionTextFromFollowUp = getQuestionById(rootQuestionIdFromFollowUp)?.question || activeQuestion;
                 return <PostEditor 
                             mode="follow-up-question"
                             question={activeQuestion}

@@ -11,50 +11,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useInformation } from "@/context/information-context";
-import { ChevronDown, User, Atom } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 
 interface HeaderProps {
   activeTab: string;
 }
 
 export function Header({ activeTab }: HeaderProps) {
-  const { users, currentUser, setCurrentUser, activeSpaceId, setActiveSpaceId, isReady, spaces } = useInformation();
-  
-  if (!isReady) {
-    return <div className="h-14"><Separator /></div>
-  }
-
-  const activeSpace = spaces.find(s => s.id === activeSpaceId);
+  const { users, currentUser, setCurrentUser } = useInformation();
 
   return (
     <>
       <header className="relative flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
-        <div className="flex flex-1 items-center gap-4">
-          <SidebarTrigger className="md:hidden" />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="rounded-full">
-                <Atom className="mr-2 h-4 w-4" />
-                {activeSpace?.name || 'Select Space'}
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {spaces.map((space) => (
-                <DropdownMenuItem
-                  key={space.id}
-                  onClick={() => setActiveSpaceId(space.id)}
-                  disabled={activeSpaceId === space.id}
-                >
-                  {space.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <p className="hidden max-w-xs text-sm text-muted-foreground md:block">
-            GRIET College Space is for presentation purposes only. Please do not use.
-          </p>
-        </div>
+        <SidebarTrigger className="md:hidden" />
+        <div className="flex-1" />
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           {activeTab && (
