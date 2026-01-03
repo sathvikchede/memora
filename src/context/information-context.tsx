@@ -2,6 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { summarizeQuestion } from '@/ai/flows/summarize-question';
 
 export interface Club {
   id: string;
@@ -39,6 +40,7 @@ export interface Answer {
 export interface Question {
     id: string;
     question: string;
+    summary: string;
     author: Author;
     answers: Answer[];
     relevance: 'high' | 'medium' | 'low';
@@ -123,6 +125,7 @@ const initialQuestions: Question[] = [
     {
         id: 'q1',
         question: 'What is the best way to learn React?',
+        summary: 'What is the best way to learn React?',
         author: initialUsers[1],
         answers: [
             {
@@ -135,6 +138,7 @@ const initialQuestions: Question[] = [
                     {
                         id: 'f1-1-1',
                         question: 'Thanks! Any specific projects you\'d recommend for beginners?',
+                        summary: 'Any specific projects for beginners?',
                         author: initialUsers[1],
                         answers: [
                              {
@@ -166,6 +170,7 @@ const initialQuestions: Question[] = [
     {
         id: 'q2',
         question: 'How does CSS Grid differ from Flexbox?',
+        summary: 'How does CSS Grid differ from Flexbox?',
         author: initialUsers[2],
         answers: [],
         relevance: 'medium'
@@ -173,6 +178,7 @@ const initialQuestions: Question[] = [
     {
         id: 'q3',
         question: 'What are the benefits of using TypeScript with React?',
+        summary: 'What are the benefits of using TypeScript with React?',
         author: initialUsers[0],
         answers: [],
         relevance: 'low'
@@ -183,9 +189,9 @@ interface InformationContextType {
     entries: Entry[];
     addEntry: (entry: Omit<Entry, 'id' | 'userId'>) => void;
     questions: Question[];
-    addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => void;
+    addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance' | 'summary'>) => void;
     addAnswer: (questionId: string, answer: Omit<Answer, 'followUps' | 'id'>, originalQuestion: string) => void;
-    addFollowUp: (answerId: string, followUp: Omit<Question, 'answers' | 'relevance' | 'id'>, originalQuestion: string) => void;
+    addFollowUp: (answerId: string, followUp: Omit<Question, 'answers' | 'relevance' | 'id' | 'summary'>, originalQuestion: string) => void;
     users: Author[];
     currentUser: Author;
     setCurrentUser: (user: Author) => void;
@@ -306,10 +312,12 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         setEntries(prevEntries => [...prevEntries, { ...entry, id: `entry-${Date.now()}`, userId: currentUser.id }]);
     };
 
-    const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => {
+    const addQuestion = async (question: Omit<Question, 'id' | 'answers' | 'relevance' | 'summary'>) => {
+        const { summary } = await summarizeQuestion({ question: question.question });
         const newQuestion: Question = {
             ...question,
             id: `q-${Date.now()}`,
+            summary,
             answers: [],
             relevance: 'medium', // Default relevance
         };
@@ -353,10 +361,12 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         });
     };
 
-     const addFollowUp = (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id'>, originalQuestion: string) => {
+     const addFollowUp = async (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id' | 'summary'>, originalQuestion: string) => {
+        const { summary } = await summarizeQuestion({ question: followUp.question });
         const newFollowUp: Question = {
             ...followUp,
             id: `f-${Date.now()}`,
+            summary,
             answers: [],
             relevance: 'medium',
             isFollowUp: true,

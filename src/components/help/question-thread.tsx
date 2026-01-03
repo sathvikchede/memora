@@ -49,8 +49,8 @@ const ThreadItem = ({
 
 interface QuestionThreadProps {
     questionId: string;
-    onAnswer: (questionId: string, question: string) => void;
-    onFollowUp: (questionId: string, answerId: string, question: string) => void;
+    onAnswer: (questionId: string, question: string, summary: string) => void;
+    onFollowUp: (questionId: string, answerId: string, question: string, summary: string) => void;
 }
 
 export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThreadProps) {
@@ -115,7 +115,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
                             <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground" onClick={() => upvoteAnswer(question.id, answer.id)}><ThumbsUp className="h-4 w-4" /> {answer.upvotes}</Button>
                             <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground" onClick={() => downvoteAnswer(question.id, answer.id)}><ThumbsDown className="h-4 w-4" /> {answer.downvotes}</Button>
                             {isYourQuery && canFollowUp(level) && (
-                                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onFollowUp(question.id, answer.id, question.question)}>Follow-up</Button>
+                                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onFollowUp(question.id, answer.id, question.question, question.summary)}>Follow-up</Button>
                             )}
                         </div>
                     </ThreadItem>
@@ -135,7 +135,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
                     <ThreadItem author={followUp.author} level={level + 1} onChat={() => handleChat(followUp.author.id)} isLast={isLast}>
                         <ReactMarkdown className="font-semibold">{followUp.question}</ReactMarkdown>
                          <div className="mt-2 flex items-center gap-2">
-                            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
+                            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onAnswer(followUp.id, followUp.question, followUp.summary)}>Answer</Button>
                         </div>
                     </ThreadItem>
                     {hasAnswers && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderAnswers(followUp, followUp.answers, level + 1)}</div>}
@@ -151,7 +151,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
            <ThreadItem author={thread.author} level={0} onChat={() => handleChat(thread.author.id)} isLast={!hasAnswers}>
                 <ReactMarkdown className="text-lg font-bold">{thread.question}</ReactMarkdown>
                 <div className="mt-4 flex items-center gap-2">
-                    <Button onClick={() => onAnswer(thread.id, thread.question)}>Answer</Button>
+                    <Button onClick={() => onAnswer(thread.id, thread.question, thread.summary)}>Answer</Button>
                 </div>
             </ThreadItem>
             {hasAnswers && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderAnswers(thread, thread.answers, 0)}</div>}

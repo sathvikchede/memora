@@ -6,7 +6,7 @@ import { useInformation, Question } from "@/context/information-context";
 import { useState, useEffect } from "react";
 
 interface YourResponsesProps {
-    onQuestionSelect: (id: string, question: string) => void;
+    onQuestionSelect: (id: string, question: string, summary: string) => void;
 }
 
 export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
@@ -21,13 +21,13 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
         return null;
     }
     
-    const yourResponses: {id: string, question: string, parentId?: string}[] = [];
+    const yourResponses: {id: string, question: string, summary: string, parentId?: string}[] = [];
 
     const findResponses = (qs: Question[]) => {
         qs.forEach(q => {
             q.answers.forEach(a => {
                 if (a.author.id === currentUser.id) {
-                    yourResponses.push({ id: q.id, question: q.question });
+                    yourResponses.push({ id: q.id, question: q.question, summary: q.summary });
                 }
                 if (a.followUps) {
                     findResponses(a.followUps);
@@ -48,9 +48,9 @@ export function YourResponses({ onQuestionSelect }: YourResponsesProps) {
                     key={query.id} 
                     variant="outline" 
                     className="w-full justify-start h-auto text-left whitespace-normal"
-                    onClick={() => onQuestionSelect(query.parentId || query.id, query.question)}
+                    onClick={() => onQuestionSelect(query.parentId || query.id, query.question, query.summary)}
                 >
-                    You answered: {query.question}
+                    You answered: {query.summary}
                 </Button>
             ))}
              {yourResponses.length === 0 && (
