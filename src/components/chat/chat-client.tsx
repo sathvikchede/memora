@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useInformation, Author } from '@/context/information-context';
@@ -37,9 +38,11 @@ export function ChatClient() {
                 <span className="hidden md:inline">Back</span>
               </Button>
             </div>
-            <span className="truncate px-16 text-center font-bold text-lg">
-              {activeChatUser.name}
-            </span>
+            <div className="w-full text-center">
+              <span className="truncate px-16 text-center font-bold text-lg">
+                {activeChatUser.name}
+              </span>
+            </div>
           </div>
           <Separator />
           <ChatThread recipient={activeChatUser} />

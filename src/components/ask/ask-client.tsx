@@ -94,7 +94,9 @@ export function AskClient() {
                 <span className="hidden md:inline">Back</span>
             </Button>
           </div>
-          <span className="truncate px-16 text-center font-bold text-lg">{title}</span>
+          <div className="w-full text-center">
+            <span className="truncate px-16 text-center font-bold text-lg">{title}</span>
+          </div>
         </div>
     );
   };
