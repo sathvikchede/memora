@@ -133,24 +133,24 @@ const initialQuestions: Question[] = [
     {
         id: 'q1',
         question: 'What is the best way to learn React?',
-        author: { ...initialUsers[1], spaceDetails: {} },
+        author: { ...initialUsers[1], creditBalance: 0, spaceDetails: {} },
         answers: [
             {
                 id: 'a1-1',
                 text: 'The official React documentation is a great place to start. It\'s comprehensive and always up-to-date.',
-                author: { ...initialUsers[0], spaceDetails: {} },
+                author: { ...initialUsers[0], creditBalance: 0, spaceDetails: {} },
                 upvotes: 15,
                 downvotes: 1,
                 followUps: [
                     {
                         id: 'f1-1-1',
                         question: 'Thanks! Any specific projects you\'d recommend for beginners?',
-                        author: { ...initialUsers[1], spaceDetails: {} },
+                        author: { ...initialUsers[1], creditBalance: 0, spaceDetails: {} },
                         answers: [
                              {
                                 id: 'fa1-1',
                                 text: 'Build a to-do list app. It covers all the basics: state management, props, and event handling.',
-                                author: { ...initialUsers[2], spaceDetails: {} },
+                                author: { ...initialUsers[2], creditBalance: 0, spaceDetails: {} },
                                 upvotes: 10,
                                 downvotes: 0,
                                 followUps: [],
@@ -165,7 +165,7 @@ const initialQuestions: Question[] = [
             {
                 id: 'a1-2',
                 text: 'I found that building a small project, like a personal blog or a weather app, helped solidify my understanding.',
-                author: { ...initialUsers[2], spaceDetails: {} },
+                author: { ...initialUsers[2], creditBalance: 0, spaceDetails: {} },
                 upvotes: 8,
                 downvotes: 0,
                 followUps: []
@@ -173,8 +173,8 @@ const initialQuestions: Question[] = [
         ],
         relevance: 'high',
     },
-    { id: 'q2', question: 'How does CSS Grid differ from Flexbox?', author: { ...initialUsers[2], spaceDetails: {} }, answers: [], relevance: 'medium' },
-    { id: 'q3', question: 'What are the benefits of using TypeScript with React?', author: { ...initialUsers[0], spaceDetails: {} }, answers: [], relevance: 'low' }
+    { id: 'q2', question: 'How does CSS Grid differ from Flexbox?', author: { ...initialUsers[2], creditBalance: 0, spaceDetails: {} }, answers: [], relevance: 'medium' },
+    { id: 'q3', question: 'What are the benefits of using TypeScript with React?', author: { ...initialUsers[0], creditBalance: 0, spaceDetails: {} }, answers: [], relevance: 'low' }
 ];
 
 const spaces = [

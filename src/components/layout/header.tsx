@@ -29,7 +29,7 @@ export function Header({ activeTab }: HeaderProps) {
   return (
     <>
       <header className="relative flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <SidebarTrigger className="md:hidden" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -51,6 +51,11 @@ export function Header({ activeTab }: HeaderProps) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+           {activeSpaceId === 'griet-college' && (
+              <p className="hidden text-sm text-muted-foreground md:block">
+                GRIET College Space is for presentation purposes only. Please do not use.
+              </p>
+            )}
         </div>
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
