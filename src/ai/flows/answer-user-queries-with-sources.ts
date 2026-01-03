@@ -40,23 +40,25 @@ const prompt = ai.definePrompt({
   name: 'answerUserQueryPrompt',
   input: {schema: AnswerUserQueryInputSchema},
   output: {schema: AnswerUserQueryOutputSchema},
-  prompt: `You are an AI assistant that answers user queries based on provided summaries and sources.
+  prompt: `You are an AI assistant that answers user queries based on provided summaries and sources. Your primary goal is to synthesize the information from the given summaries to formulate a comprehensive answer.
+
+  When generating your answer, you MUST determine which of the provided sources were used to create the answer. You will then return only those specific sources in the output.
   
-  When generating your answer, please format the text with a clear structure. Use headings, subheadings, and lists (bulleted or numbered) where it makes sense to improve readability.
+  Please format the text with a clear structure. Use headings, subheadings, and lists (bulleted or numbered) where it makes sense to improve readability.
 
   Summaries:
   {{#each summaries}}
   - {{{this}}}
   {{/each}}
 
-  Sources:
+  Available Sources:
   {{#each sources}}
   - Contributor: {{{contributor}}}, Raw Information: {{{rawInformation}}}, Date: {{{date}}}, Type: {{{type}}}
   {{/each}}
 
   Query: {{{query}}}
 
-  Answer:`, // Handlebars templating
+  Based on the summaries, provide a detailed answer and identify the exact sources you used from the "Available Sources" list.`,
 });
 
 const answerUserQueryFlow = ai.defineFlow(
@@ -69,12 +71,7 @@ const answerUserQueryFlow = ai.defineFlow(
     const {output} = await prompt(input);
     return {
       answer: output?.answer || 'No answer could be generated based on the provided information.',
-      sources: input.sources.map(s => ({
-        contributor: s.contributor,
-        rawInformation: s.rawInformation,
-        date: s.date,
-        type: s.type,
-      })),
+      sources: output?.sources || [],
     };
   }
 );
