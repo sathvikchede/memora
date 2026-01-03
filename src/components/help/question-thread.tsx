@@ -96,11 +96,11 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
         return answers.map((answer, index) => {
             const hasFollowUps = answer.followUps && answer.followUps.length > 0;
             const isExpanded = expandedAnswers.includes(answer.id);
-            const isLast = index === answers.length - 1 && !hasFollowUps;
+            const isLastInGroup = index === answers.length - 1;
             
             return (
                 <div className="space-y-6" key={answer.id}>
-                    <ThreadItem author={answer.author} level={level + 1} onChat={() => handleChat(answer.author.id)} isLast={isLast}>
+                    <ThreadItem author={answer.author} level={level + 1} onChat={() => handleChat(answer.author.id)} isLast={isLastInGroup && !hasFollowUps}>
                         <div className={cn(!isExpanded && "line-clamp-3")}>
                             <ReactMarkdown>{answer.text}</ReactMarkdown>
                         </div>
@@ -119,7 +119,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
                             )}
                         </div>
                     </ThreadItem>
-                    {hasFollowUps && isExpanded && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderFollowUps(question, answer.followUps, level + 1)}</div>}
+                    {hasFollowUps && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderFollowUps(question, answer.followUps, level + 1)}</div>}
                 </div>
             );
         });
