@@ -11,7 +11,7 @@ import { Separator } from '../ui/separator';
 import { formatRelativeDate } from '@/lib/utils';
 
 export function ChatClient() {
-  const { users, currentUser, getChatMessages } = useInformation();
+  const { users, currentUser, getChatMessages, activeSpaceId } = useInformation();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -77,7 +77,7 @@ export function ChatClient() {
           const conversationId = [currentUser.id, user.id].sort().join('-');
           const messages = getChatMessages(conversationId);
           const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-          const spaceDetails = user.spaceDetails['sample-college'] || { year: '', department: ''};
+          const spaceDetails = (user.spaceDetails && user.spaceDetails[activeSpaceId]) || { year: '', department: ''};
           
           return (
             <Button
