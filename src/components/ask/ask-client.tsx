@@ -50,6 +50,11 @@ export function AskClient() {
 
   const activeChat = activeChatId ? getChatHistoryItem(activeChatId) : null;
   const userChatHistory = chatHistory.filter(item => item.userId === currentUser.id);
+  
+  const truncateTitle = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  }
 
   const renderNav = () => {
     let title = "";
@@ -96,7 +101,7 @@ export function AskClient() {
             </Button>
           </div>
           <div className="w-full text-center">
-            <span className="truncate px-16 text-center font-bold text-lg">{title}</span>
+            <span className="truncate px-16 text-center font-bold text-lg">{truncateTitle(title, 45)}</span>
           </div>
         </div>
     );
