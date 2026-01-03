@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { useInformation, Question as QuestionType, Author as AuthorType, Answer as AnswerType } from "@/context/information-context";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from 'react-markdown';
 
 const ThreadItem = ({ 
     children, 
@@ -38,7 +39,7 @@ const ThreadItem = ({
                     <p className="text-xs text-muted-foreground">{author.department}</p>
                     <Button variant="link" size="sm" onClick={onChat} className="ml-auto p-0 h-auto text-muted-foreground">Chat</Button>
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 prose prose-sm dark:prose-invert max-w-none">
                     {children}
                 </div>
             </div>
@@ -100,7 +101,9 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
             return (
                 <div className="space-y-6" key={answer.id}>
                     <ThreadItem author={answer.author} level={level + 1} onChat={() => handleChat(answer.author.id)} isLast={isLast}>
-                        <p className={cn("text-sm", !isExpanded && "line-clamp-3")}>{answer.text}</p>
+                        <div className={cn(!isExpanded && "line-clamp-3")}>
+                            <ReactMarkdown>{answer.text}</ReactMarkdown>
+                        </div>
                         <Button 
                             variant="link" 
                             className="w-auto h-auto p-0 text-xs text-muted-foreground mt-2"
@@ -130,7 +133,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
             return (
                 <div className="space-y-6" key={followUp.id}>
                     <ThreadItem author={followUp.author} level={level + 1} onChat={() => handleChat(followUp.author.id)} isLast={isLast}>
-                        <p className="font-semibold text-sm">{followUp.question}</p>
+                        <ReactMarkdown className="font-semibold">{followUp.question}</ReactMarkdown>
                          <div className="mt-2 flex items-center gap-2">
                             <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
                         </div>
@@ -146,7 +149,7 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
     return (
         <div className="space-y-6">
            <ThreadItem author={thread.author} level={0} onChat={() => handleChat(thread.author.id)} isLast={!hasAnswers}>
-                <h2 className="text-lg font-bold">{thread.question}</h2>
+                <ReactMarkdown className="text-lg font-bold">{thread.question}</ReactMarkdown>
                 <div className="mt-4 flex items-center gap-2">
                     <Button onClick={() => onAnswer(thread.id, thread.question)}>Answer</Button>
                 </div>

@@ -34,6 +34,7 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
         let prefix = '';
         let suffix = '';
         let placeholder = '';
+        let isBlock = false;
 
         switch (style) {
             case 'bold':
@@ -47,37 +48,66 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 placeholder = 'Italic Text';
                 break;
             case 'underline':
-                prefix = '<u>';
-                suffix = '</u>';
+                prefix = '&lt;u&gt;';
+                suffix = '&lt;/u&gt;';
                 placeholder = 'Underlined Text';
                 break;
             case 'h1':
                 prefix = '# ';
                 placeholder = 'Heading 1';
+                isBlock = true;
                 break;
             case 'h2':
                 prefix = '## ';
                 placeholder = 'Heading 2';
+                isBlock = true;
                 break;
             case 'h3':
                 prefix = '### ';
                 placeholder = 'Heading 3';
+                isBlock = true;
                 break;
         }
 
         const textToInsert = selectedText || placeholder;
-        const newText = `${content.substring(0, start)}${prefix}${textToInsert}${suffix}${content.substring(end)}`;
+        
+        // For block styles like headings, ensure they are on a new line
+        const before = content.substring(0, start);
+        const after = content.substring(end);
+        
+        let newText: string;
+        let selectionStart: number;
+        let selectionEnd: number;
+
+        if (isBlock) {
+            const startOfLine = before.lastIndexOf('\n') + 1;
+            const beforeLine = content.substring(0, startOfLine);
+            const lineContent = content.substring(startOfLine, end);
+            const afterLine = content.substring(end);
+
+            if (selectedText) { // If text is selected
+                 newText = `${before.substring(0,startOfLine)}${prefix}${content.substring(startOfLine,end)}${after}`;
+                 selectionStart = startOfLine;
+                 selectionEnd = end + prefix.length;
+            } else { // No text selected, insert on new line
+                const needsNewline = before.length > 0 && !before.endsWith('\n');
+                const finalPrefix = (needsNewline ? '\n' : '') + prefix;
+                newText = `${before}${finalPrefix}${placeholder}${after}`;
+                selectionStart = start + finalPrefix.length;
+                selectionEnd = selectionStart + placeholder.length;
+            }
+        } else { // Inline styles
+            newText = `${before}${prefix}${textToInsert}${suffix}${after}`;
+            selectionStart = start + prefix.length;
+            selectionEnd = selectionStart + textToInsert.length;
+        }
+
         setContent(newText);
 
         textarea.focus();
         setTimeout(() => {
-            if (selectedText) {
-                textarea.selectionStart = start + prefix.length;
-                textarea.selectionEnd = start + prefix.length + selectedText.length;
-            } else {
-                textarea.selectionStart = start + prefix.length;
-                textarea.selectionEnd = start + prefix.length + placeholder.length;
-            }
+            textarea.selectionStart = selectionStart;
+            textarea.selectionEnd = selectionEnd;
         }, 0);
     };
 
@@ -122,7 +152,7 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 }
                 break;
             case "follow-up-question":
-                 if (answerId && questionId) {
+                 if (answerId &amp;&amp; questionId) {
                     addFollowUp(answerId, { question: content, author, parentId: questionId }, question);
                 }
                 break;
