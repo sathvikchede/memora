@@ -177,6 +177,12 @@ const initialQuestions: Question[] = [
     { id: 'q3', question: 'What are the benefits of using TypeScript with React?', author: { ...initialUsers[0], spaceDetails: {} }, answers: [], relevance: 'low' }
 ];
 
+const spaces = [
+    { id: 'sample-college', name: 'Sample College' },
+    { id: 'griet-college', name: 'GRIET College' }
+];
+
+
 const initialSpaceData: Record<string, SpaceData> = {
     'sample-college': {
         entries: [],
@@ -216,6 +222,7 @@ interface InformationContextType {
     setCurrentUser: (user: Author) => void;
     updateUser: (user: Author) => void;
     updateCreditBalance: (userId: string, amount: number) => void;
+    spaces: { id: string, name: string }[];
     activeSpaceId: string;
     setActiveSpaceId: (spaceId: string) => void;
     isReady: boolean;
@@ -272,7 +279,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         setSpacesData(prev => ({
             ...prev,
             [spaceId]: {
-                ...prev[spaceId],
+                ...(prev[spaceId] || { entries: [], questions: [], chatMessages: [], chatHistory: [] }),
                 ...newSpaceData,
             }
         }));
@@ -315,7 +322,8 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const getSpaceData = () => spacesData[activeSpaceId] || { entries: [], questions: [], chatMessages: [], chatHistory: []};
     
     const addEntry = (entry: Omit<Entry, 'id' | 'userId'>) => {
-        const newEntry = { ...entry, id: `entry-${Date.now()}`, userId: currentUser!.id };
+        if (!currentUser) return;
+        const newEntry = { ...entry, id: `entry-${Date.now()}`, userId: currentUser.id };
         const currentEntries = getSpaceData().entries;
         updateSpaceData(activeSpaceId, { entries: [...currentEntries, newEntry] });
     };
@@ -532,7 +540,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             getChatMessages, sendChatMessage, getRememberState, toggleRememberState, 
             addHistoryItem, addMessageToHistory, getChatHistoryItem,
             users, currentUser, setCurrentUser, updateUser, updateCreditBalance, 
-            activeSpaceId, setActiveSpaceId, isReady 
+            spaces, activeSpaceId, setActiveSpaceId, isReady 
         }}>
             {children}
         </InformationContext.Provider>

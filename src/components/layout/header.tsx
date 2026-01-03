@@ -11,14 +11,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useInformation } from "@/context/information-context";
-import { ChevronDown, User } from "lucide-react";
+import { ChevronDown, User, Atom } from "lucide-react";
 
 interface HeaderProps {
   activeTab: string;
 }
 
 export function Header({ activeTab }: HeaderProps) {
-  const { users, currentUser, setCurrentUser } = useInformation();
+  const { users, currentUser, setCurrentUser, activeSpaceId, setActiveSpaceId, isReady, spaces } = useInformation();
+  
+  if (!isReady) {
+    return <div className="h-14"><Separator /></div>
+  }
+
+  const activeSpace = spaces.find(s => s.id === activeSpaceId);
+
   return (
     <>
       <header className="relative flex h-14 items-center gap-4 px-4 sm:px-6">
@@ -30,7 +37,28 @@ export function Header({ activeTab }: HeaderProps) {
             </span>
           )}
         </div>
-        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-4">
+        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="rounded-full">
+                <Atom className="mr-2 h-4 w-4" />
+                {activeSpace?.name || 'Select Space'}
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {spaces.map((space) => (
+                <DropdownMenuItem
+                  key={space.id}
+                  onClick={() => setActiveSpaceId(space.id)}
+                  disabled={activeSpaceId === space.id}
+                >
+                  {space.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="rounded-full">
