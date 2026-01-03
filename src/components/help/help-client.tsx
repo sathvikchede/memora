@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -10,12 +11,14 @@ import { YourQueries } from "./your-queries";
 import { YourResponses } from "./your-responses";
 import { QuestionThread } from "./question-thread";
 import { PostEditor } from "./post-editor";
+import { useInformation } from "@/context/information-context";
 
 type HelpView = "open-queries" | "your-queries" | "your-responses" | "question-detail" | "post-question" | "answer-question" | "follow-up-question";
 
 function HelpClientContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { getQuestionById } = useInformation();
     
     const [view, setView] = useState<HelpView>("open-queries");
     const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
@@ -64,7 +67,10 @@ function HelpClientContent() {
                 break;
             case "answer-question":
             case "follow-up-question":
-                navigate("question-detail", { id: activeQuestionId!, question: activeQuestion, from });
+                const questionToReturn = getQuestionById(activeQuestionId!);
+                const rootQuestionId = questionToReturn?.parentId || questionToReturn?.id;
+                const rootQuestionText = getQuestionById(rootQuestionId!)?.question || activeQuestion;
+                navigate("question-detail", { id: rootQuestionId!, question: rootQuestionText, from });
                 break;
             default:
                 navigate("open-queries");
@@ -135,20 +141,27 @@ function HelpClientContent() {
                         />;
             case "answer-question":
                  if (!activeQuestionId) return <div>Question not found.</div>;
+                 const questionToReturnFromAnswer = getQuestionById(activeQuestionId!);
+                 const rootQuestionIdFromAnswer = questionToReturnFromAnswer?.parentId || questionToReturnFromAnswer?.id;
+                 const rootQuestionTextFromAnswer = getQuestionById(rootQuestionIdFromAnswer!)?.question || activeQuestion;
+
                 return <PostEditor 
                             mode="answer-question"
                             question={activeQuestion}
                             questionId={activeQuestionId}
-                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion, from })}
+                            onPost={() => navigate('question-detail', { id: rootQuestionIdFromAnswer, question: rootQuestionTextFromAnswer, from })}
                         />;
             case "follow-up-question":
                  if (!activeQuestionId || !activeAnswerId) return <div>Question not found.</div>;
+                 const questionToReturnFromFollowUp = getQuestionById(activeQuestionId!);
+                 const rootQuestionIdFromFollowUp = questionToReturnFromFollowUp?.parentId || questionToReturnFromFollowUp?.id;
+                 const rootQuestionTextFromFollowUp = getQuestionById(rootQuestionIdFromFollowUp!)?.question || activeQuestion;
                 return <PostEditor 
                             mode="follow-up-question"
                             question={activeQuestion}
                             questionId={activeQuestionId}
                             answerId={activeAnswerId}
-                            onPost={() => navigate('question-detail', { id: activeQuestionId, question: activeQuestion, from })}
+                            onPost={() => navigate('question-detail', { id: rootQuestionIdFromFollowUp, question: rootQuestionTextFromFollowUp, from })}
                         />;
             default:
                 return <div>Select a view</div>;

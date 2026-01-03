@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 
 export interface Club {
   id: string;
@@ -40,7 +40,6 @@ export interface Answer {
 export interface Question {
     id: string;
     question: string;
-    summary: string;
     author: Author;
     answers: Answer[];
     relevance: 'high' | 'medium' | 'low';
@@ -127,7 +126,6 @@ const initialQuestions: Question[] = [
     {
         id: 'q1',
         question: 'What is the best way to learn React?',
-        summary: 'What is the best way to learn React?',
         author: initialUsers[1],
         answers: [
             {
@@ -140,7 +138,6 @@ const initialQuestions: Question[] = [
                     {
                         id: 'f1-1-1',
                         question: 'Thanks! Any specific projects you\'d recommend for beginners?',
-                        summary: 'Any specific projects for beginners?',
                         author: initialUsers[1],
                         answers: [
                              {
@@ -172,7 +169,6 @@ const initialQuestions: Question[] = [
     {
         id: 'q2',
         question: 'How does CSS Grid differ from Flexbox?',
-        summary: 'How does CSS Grid differ from Flexbox?',
         author: initialUsers[2],
         answers: [],
         relevance: 'medium'
@@ -180,7 +176,6 @@ const initialQuestions: Question[] = [
     {
         id: 'q3',
         question: 'What are the benefits of using TypeScript with React?',
-        summary: 'What are the benefits of using TypeScript with React?',
         author: initialUsers[0],
         answers: [],
         relevance: 'low'
@@ -191,9 +186,10 @@ interface InformationContextType {
     entries: Entry[];
     addEntry: (entry: Omit<Entry, 'id' | 'userId'>) => void;
     questions: Question[];
-    addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance' | 'summary'>) => void;
+    getQuestionById: (questionId: string) => Question | undefined;
+    addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => void;
     addAnswer: (questionId: string, answer: Omit<Answer, 'followUps' | 'id'>, originalQuestion: string) => void;
-    addFollowUp: (answerId: string, followUp: Omit<Question, 'answers' | 'relevance' | 'id' | 'summary'>, originalQuestion: string) => void;
+    addFollowUp: (answerId: string, followUp: Omit<Question, 'answers' | 'relevance' | 'id'>, originalQuestion: string) => void;
     users: Author[];
     currentUser: Author;
     setCurrentUser: (user: Author) => void;
@@ -332,11 +328,10 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         setEntries(prevEntries => [...prevEntries, { ...entry, id: `entry-${Date.now()}`, userId: currentUser.id }]);
     };
 
-    const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance' | 'summary'>) => {
+    const addQuestion = (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => {
         const newQuestion: Question = {
             ...question,
             id: `q-${Date.now()}`,
-            summary: question.question,
             answers: [],
             relevance: 'medium', // Default relevance
         };
@@ -380,11 +375,10 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
         });
     };
 
-     const addFollowUp = (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id' | 'summary'>, originalQuestion: string) => {
+     const addFollowUp = (answerId: string, followUp: Omit<Question, 'answers' | 'relevance'| 'id'>, originalQuestion: string) => {
         const newFollowUp: Question = {
             ...followUp,
             id: `f-${Date.now()}`,
-            summary: followUp.question,
             answers: [],
             relevance: 'medium',
             isFollowUp: true,
@@ -443,6 +437,23 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const downvoteAnswer = (questionId: string, answerId: string) => {
         updateVotes(questionId, answerId, 'down');
     };
+
+    const getQuestionById = useCallback((questionId: string): Question | undefined => {
+        const findQuestion = (qs: Question[]): Question | undefined => {
+            for (const q of qs) {
+                if (q.id === questionId) {
+                    return q;
+                }
+                const foundInAnswers = q.answers.map(a => findQuestion(a.followUps)).find(Boolean);
+                if (foundInAnswers) {
+                    return foundInAnswers;
+                }
+            }
+            return undefined;
+        };
+        return findQuestion(questions);
+    }, [questions]);
+
 
     // CHAT
     const getChatMessages = (conversationId: string) => {
@@ -521,7 +532,7 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
 
 
     return (
-        <InformationContext.Provider value={{ entries, addEntry, questions, addQuestion, addAnswer, addFollowUp, users, currentUser, setCurrentUser, updateUser, upvoteAnswer, downvoteAnswer, updateCreditBalance, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, chatHistory, addHistoryItem, addMessageToHistory, getChatHistoryItem, isReady }}>
+        <InformationContext.Provider value={{ entries, addEntry, questions, getQuestionById, addQuestion, addAnswer, addFollowUp, users, currentUser, setCurrentUser, updateUser, upvoteAnswer, downvoteAnswer, updateCreditBalance, chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState, chatHistory, addHistoryItem, addMessageToHistory, getChatHistoryItem, isReady }}>
             {children}
         </InformationContext.Provider>
     );
