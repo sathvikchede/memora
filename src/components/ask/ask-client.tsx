@@ -109,8 +109,8 @@ export function AskClient() {
                 <div className="divide-y divide-border">
                     {userChatHistory.map(item => (
                         <div key={item.id} onClick={() => navigate("chat-detail", { id: item.id })} className="flex cursor-pointer items-center justify-between p-4 hover:bg-accent">
-                            <span className="font-medium">{item.title}</span>
-                            <span className="text-sm text-muted-foreground">{new Date(item.date).toLocaleDateString()}</span>
+                            <span className="font-medium truncate">{item.title}</span>
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">{new Date(item.date).toLocaleDateString()}</span>
                         </div>
                     ))}
                     {userChatHistory.length === 0 && <p className="p-4 text-center text-muted-foreground">No chat history yet.</p>}
