@@ -8,9 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ChatThread } from './chat-thread';
 import { ChevronLeft } from 'lucide-react';
 import { Separator } from '../ui/separator';
+import { formatRelativeDate } from '@/lib/utils';
 
 export function ChatClient() {
-  const { users, currentUser } = useInformation();
+  const { users, currentUser, getChatMessages } = useInformation();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -54,30 +55,36 @@ export function ChatClient() {
   return (
     <div className="mx-auto w-full max-w-4xl py-4 px-4 sm:px-6 lg:px-8">
       <div className="space-y-2">
-        {otherUsers.map((user) => (
-          <Button
-            key={user.id}
-            variant="secondary"
-            className="h-auto w-full justify-start rounded-full p-2"
-            onClick={() => router.push(`/chat?userId=${user.id}`)}
-          >
-            <div className="flex w-full items-center gap-4">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 text-left">
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {user.year} - {user.department}
-                </p>
+        {otherUsers.map((user) => {
+          const conversationId = [currentUser.id, user.id].sort().join('-');
+          const messages = getChatMessages(conversationId);
+          const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+          
+          return (
+            <Button
+              key={user.id}
+              variant="secondary"
+              className="h-auto w-full justify-start rounded-full p-2"
+              onClick={() => router.push(`/chat?userId=${user.id}`)}
+            >
+              <div className="flex w-full items-center gap-4">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left">
+                  <p className="font-semibold">{user.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {user.year} - {user.department}
+                  </p>
+                </div>
+                <div className="text-right text-sm text-muted-foreground">
+                  {lastMessage && <p>{formatRelativeDate(lastMessage.timestamp)}</p>}
+                </div>
               </div>
-              <div className="text-right text-sm text-muted-foreground">
-                <p>Yesterday</p> {/* Placeholder date */}
-              </div>
-            </div>
-          </Button>
-        ))}
+            </Button>
+          );
+        })}
       </div>
     </div>
   );
