@@ -41,13 +41,11 @@ const prompt = ai.definePrompt({
   name: 'answerUserQueryPrompt',
   input: {schema: AnswerUserQueryInputSchema},
   output: {schema: AnswerUserQueryOutputSchema},
-  prompt: `You are an AI assistant that answers user queries based on provided summaries and sources within a specific information space. Your primary goal is to synthesize the information from the given summaries to formulate a comprehensive answer.
+  prompt: `You are an AI assistant for an information space called {{{activeSpaceId}}}. Your primary goal is to synthesize the information from the given summaries to formulate a comprehensive answer to the user's query.
 
-  The current information space is identified by: {{{activeSpaceId}}}.
-
-  When generating your answer, you MUST determine which of the provided sources were used to create the answer. You will then return only those specific sources in the output.
+  When generating your answer, you MUST determine which of the provided sources were used. You will then return only those specific sources in the output.
   
-  If you cannot find a relevant answer from the provided summaries, you MUST return an empty string for the "answer" field and an empty array for the "sources" field. DO NOT make up an answer or explain that you don't have enough information.
+  If the provided summaries do not contain enough information to answer the query, you MUST return an empty string for the "answer" field and an empty array for the "sources" field.
   
   Please format the text with a clear structure. Use headings, subheadings, and lists (bulleted or numbered) where it makes sense to improve readability.
 

@@ -150,12 +150,10 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
 
             try {
                 const result = await answerUserQuery(queryInput);
-                aiResponseText = result.answer;
+                aiResponseText = result.answer || ''; // Fallback to empty string if null/undefined
                 sourcesForAnswer = result.sources;
 
-                if (!aiResponseText) {
-                    aiResponseText = `I don't have enough information to answer that question. You can add more information or post this question to the community.`;
-                } else {
+                if (aiResponseText) {
                     // Deduct credit only if a valid answer is found
                     updateCreditBalance(currentUser.id, -1);
                     creditDeducted = true;
@@ -167,6 +165,10 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
             }
         }
         
+        if (!aiResponseText) {
+            aiResponseText = `I don't have enough information to answer that question. You can add more information or post this question to the community.`;
+        }
+
         if (creditDeducted) {
             toast({
                 title: "Credit Deducted",
