@@ -123,10 +123,10 @@ export function AddClient() {
           setLatestEntry({ ...newEntryData, id: `entry-${Date.now()}`, userId: currentUser.id });
       }
       if (awardedCredits && !isAnonymous) {
-          updateCreditBalance(currentUser.id, 15);
+          updateCreditBalance(currentUser.id, 10);
           toast({
               title: "Credits Awarded!",
-              description: "You've earned 15 credits for your contribution.",
+              description: "You've earned 10 credits for your contribution.",
           });
       }
       setInput("");
