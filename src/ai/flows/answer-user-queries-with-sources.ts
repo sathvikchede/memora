@@ -33,18 +33,23 @@ const AnswerUserQueryOutputSchema = z.object({
 export type AnswerUserQueryOutput = z.infer<typeof AnswerUserQueryOutputSchema>;
 
 export async function answerUserQuery(input: AnswerUserQueryInput): Promise<AnswerUserQueryOutput> {
-  return answerUserQueryFlow(input);
+  const result = await answerUserQueryFlow(input);
+  return result || { answer: '', sources: [] };
 }
 
 const prompt = ai.definePrompt({
   name: 'answerUserQueryPrompt',
   input: {schema: AnswerUserQueryInputSchema},
   output: {schema: AnswerUserQueryOutputSchema},
-  prompt: `You are an AI assistant. Your task is to answer the user's query based ONLY on the provided summaries.
+  prompt: `You are an expert AI assistant. Your task is to provide a comprehensive and well-structured answer to the user's query based *only* on the information provided in the "Summaries".
 
-- Synthesize the information from the summaries to create a comprehensive answer.
-- After creating the answer, identify which of the "Available Sources" were used.
-- If the summaries do not contain information to answer the query, return an empty string for the "answer" field and an empty array for the "sources" field.
+Follow these steps:
+1.  Thoroughly analyze the user's "Query" to understand what they are asking.
+2.  Review all the "Summaries" to find relevant information.
+3.  Synthesize the information into a clear and coherent answer.
+4.  **Format your answer using Markdown.** Use headings, subheadings, bullet points (using hyphens or asterisks), and bold text to structure the information logically and make it easy to read.
+5.  Based on the information you used, identify the corresponding "Available Sources" and include them in your output.
+6.  **If the summaries do not contain relevant information to answer the query, you MUST return an empty string for the "answer" field and an empty array for the "sources" field.**
 
 Query: {{{query}}}
 
@@ -66,7 +71,11 @@ const answerUserQueryFlow = ai.defineFlow(
     outputSchema: AnswerUserQueryOutputSchema,
   },
   async input => {
+    // If there are no entries to search, don't call the AI.
+    if (input.summaries.length === 0) {
+      return { answer: '', sources: [] };
+    }
     const {output} = await prompt(input);
-    return output || { answer: '', sources: [] };
+    return output!;
   }
 );
