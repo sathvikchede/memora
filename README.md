@@ -6,12 +6,13 @@ Memora AI is an intelligent, collaborative knowledge base designed to answer que
 
 ## How It Works: The Self-Learning Loop
 
-Memora's intelligence is built on a simple yet powerful principle: it only knows what you teach it. The AI's knowledge base is dynamically built from three primary sources, creating a continuous learning loop.
+Memora's intelligence is built on a simple yet powerful principle: it only knows what you teach it. The AI's knowledge base is dynamically built from three primary sources, creating a continuous learning loop. For this prototype, all information is managed client-side via React Context and persisted in the browser's `localStorage`, simulating a real-time database.
 
 1.  **📚 Direct Contribution (The "Add" Tab):**
     *   Users can directly add information to Memora's knowledge base.
     *   This can be plain text, or multi-modal inputs like images and voice transcriptions.
-    *   The `processMultimediaInput` and `summarizeUserInformation` AI flows process these inputs, extracting and summarizing the key information into a structured log.
+    *   The `processMultimediaInput` and `summarizeUserInformation` AI flows process these inputs, extracting and summarizing the key information.
+    *   The resulting summary is then stored as a structured "entry" in the central `InformationProvider`, which acts as our in-memory knowledge base.
 
 2.  **🤝 Collaborative Knowledge (The "Help" Tab):**
     *   When a user asks a question the AI can't answer, it can be posted to the "Help" section.
@@ -23,7 +24,7 @@ Memora's intelligence is built on a simple yet powerful principle: it only knows
     *   A "Remember this" toggle allows users to flag specific conversations as important.
     *   When enabled, the content of these chats is added to the AI's knowledge base, capturing valuable information that emerges from natural dialogue.
 
-All this information feeds into a central repository. When a user asks a question in the "Ask" tab, the `answerUserQuery` AI flow synthesizes an answer exclusively from this learned information, providing the sources and contributors for full transparency.
+All this information feeds into a central repository managed by the `InformationProvider`. When a user asks a question in the "Ask" tab, the `answerUserQuery` AI flow is invoked. Crucially, the application gathers all the relevant summaries and information logs from the `InformationProvider` and sends them to the AI as part of the prompt, along with the user's query. The AI then synthesizes an answer exclusively from this provided context, providing the sources and contributors for full transparency.
 
 ---
 
@@ -46,5 +47,5 @@ All this information feeds into a central repository. When a user asks a questio
 *   **Language:** TypeScript
 *   **Styling:** Tailwind CSS with ShadCN UI components
 *   **AI & GenAI:** Google Gemini via Genkit flows
-*   **Backend & Database:** Firebase & Firestore
+*   **Backend & Database:** Firebase & Firestore (Simulated with React Context and localStorage for this prototype)
 *   **Authentication:** Firebase Authentication (mocked with a user-switching context for demo purposes)
