@@ -23,11 +23,26 @@ export interface QueryWithSourcesInput {
   summaries: SummaryForQuery[];
 }
 
+// Topic reference structure (used instead of Record for Gemini compatibility)
+export interface TopicReference {
+  summary_id: string;
+  topic_keys: string[];
+}
+
 // Output type for the server action
 export interface QueryWithSourcesOutput {
   answer: string;
   summaries_used: string[];
-  topics_referenced: Record<string, string[]>;
+  topics_referenced: Record<string, string[]>; // Converted from array after AI call
+  confidence: number;
+  insufficient_info: boolean;
+}
+
+// Internal output from AI (uses array instead of Record for Gemini compatibility)
+interface QueryWithSourcesAIOutput {
+  answer: string;
+  summaries_used: string[];
+  topics_referenced: TopicReference[];
   confidence: number;
   insufficient_info: boolean;
 }
@@ -48,12 +63,18 @@ const QueryWithSourcesInputSchema = z.object({
     .describe('Available summaries to search'),
 });
 
+// Schema for topic references (array format for Gemini compatibility)
+const TopicReferenceSchema = z.object({
+  summary_id: z.string().describe('The summary ID'),
+  topic_keys: z.array(z.string()).describe('Topic keys used from this summary'),
+});
+
 const QueryWithSourcesOutputSchema = z.object({
   answer: z.string().describe('The answer to the query. Empty string if no relevant info found.'),
   summaries_used: z.array(z.string()).describe('Summary IDs that were used'),
   topics_referenced: z
-    .record(z.string(), z.array(z.string()))
-    .describe('Map of summary_id to array of topic_keys used'),
+    .array(TopicReferenceSchema)
+    .describe('Array of summary IDs with their topic keys used'),
   confidence: z.number().min(0).max(1).describe('Confidence in the answer'),
   insufficient_info: z.boolean().describe('True if information was insufficient to answer'),
 });
@@ -89,12 +110,12 @@ INSTRUCTIONS:
 Return a JSON object with:
 - answer: Your answer text (use markdown formatting). Empty string if no relevant info.
 - summaries_used: Array of summary_ids you referenced
-- topics_referenced: Object mapping summary_id to array of topic_keys you used
+- topics_referenced: Array of objects with {summary_id, topic_keys} for each summary you used
 - confidence: Your confidence in the answer (0.0-1.0)
 - insufficient_info: true if you couldn't find relevant information`,
 });
 
-// Define the flow
+// Define the flow (uses array format for topics_referenced for Gemini compatibility)
 const queryWithSourcesFlow = ai.defineFlow(
   {
     name: 'queryWithSourcesFlow',
@@ -107,7 +128,7 @@ const queryWithSourcesFlow = ai.defineFlow(
       return {
         answer: '',
         summaries_used: [],
-        topics_referenced: {},
+        topics_referenced: [], // Array format for flow
         confidence: 0,
         insufficient_info: true,
       };
@@ -119,7 +140,7 @@ const queryWithSourcesFlow = ai.defineFlow(
       return {
         answer: '',
         summaries_used: [],
-        topics_referenced: {},
+        topics_referenced: [], // Array format for flow
         confidence: 0,
         insufficient_info: true,
       };
@@ -130,9 +151,26 @@ const queryWithSourcesFlow = ai.defineFlow(
 );
 
 /**
+ * Convert array format topics_referenced to Record format.
+ */
+function convertTopicsToRecord(topics: TopicReference[]): Record<string, string[]> {
+  const record: Record<string, string[]> = {};
+  for (const topic of topics) {
+    record[topic.summary_id] = topic.topic_keys;
+  }
+  return record;
+}
+
+/**
  * Server action to query the AI with summaries.
  * Called from the client-side query handler.
  */
 export async function queryWithSources(input: QueryWithSourcesInput): Promise<QueryWithSourcesOutput> {
-  return queryWithSourcesFlow(input);
+  const flowResult = await queryWithSourcesFlow(input);
+
+  // Convert topics_referenced from array to Record format for the rest of the code
+  return {
+    ...flowResult,
+    topics_referenced: convertTopicsToRecord(flowResult.topics_referenced as unknown as TopicReference[]),
+  };
 }

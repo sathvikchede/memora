@@ -135,12 +135,19 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
         } else if (entries.length === 0 && summaries.length === 0) {
             aiResponseText = `I don't have enough information yet. You can add information in the "Add" tab or by answering questions in the "Help" tab.`;
         } else {
+            console.log('[QUERY DEBUG] entries.length:', entries.length);
+            console.log('[QUERY DEBUG] summaries.length:', summaries.length);
+            console.log('[QUERY DEBUG] summaries:', summaries);
+
             // Try the new topic-level source tracking system first if summaries exist
             if (summaries.length > 0) {
+                console.log('[QUERY DEBUG] Trying topic-level query system...');
                 try {
                     const queryResult = await handleQueryWithSources(userMessageText);
+                    console.log('[QUERY DEBUG] queryResult:', queryResult);
 
                     if (!queryResult.insufficient_info && queryResult.answer) {
+                        console.log('[QUERY DEBUG] Using topic-level answer');
                         aiResponseText = queryResult.answer;
                         // Convert to the format expected by the sources view
                         sourcesForAnswer = queryResult.original_entry_details.map(entry => ({
@@ -152,15 +159,20 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                         // Deduct credit for valid answer
                         updateCreditBalance(currentUser.id, -1);
                         creditDeducted = true;
+                    } else {
+                        console.log('[QUERY DEBUG] Topic-level returned insufficient_info or no answer');
                     }
                 } catch (error) {
                     console.error("Error with topic-level query:", error);
                     // Fall back to legacy system
                 }
+            } else {
+                console.log('[QUERY DEBUG] No summaries found, skipping topic-level system');
             }
 
             // Fall back to legacy entry-based system if topic-level didn't return results
             if (!aiResponseText && entries.length > 0) {
+                console.log('[QUERY DEBUG] Falling back to legacy entry-based system');
                 const queryInput: AnswerUserQueryInput = {
                     query: userMessageText,
                     summaries: entries.map(e => e.text),
