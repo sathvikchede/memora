@@ -29,6 +29,7 @@ import { useInformation, Entry } from "@/context/information-context";
 import { Separator } from "@/components/ui/separator";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
 import { summarizeUserInformation, SummarizeUserInformationInput } from "@/ai/flows/summarize-user-information";
+import { processNewEntry } from "@/services/entry-processor";
 import { useToast } from "@/hooks/use-toast";
 
 interface UploadedFile {
@@ -39,7 +40,7 @@ interface UploadedFile {
 }
 
 export function AddClient() {
-  const { entries, addEntry, currentUser, updateCreditBalance } = useInformation();
+  const { entries, addEntry, currentUser, updateCreditBalance, refreshSummaries } = useInformation();
   const { toast } = useToast();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -60,6 +61,7 @@ export function AddClient() {
       setIsSending(true);
       let newEntryData: Omit<Entry, 'id' | 'userId'> | null = null;
       let awardedCredits = false;
+      let contentToProcess = '';
 
       if (uploadedFiles.length > 0) {
         for (const file of uploadedFiles) {
@@ -69,6 +71,7 @@ export function AddClient() {
             };
             try {
                 const result = await processMultimediaInput(multimediaInput);
+                contentToProcess = result.summary;
                 newEntryData = {
                     text: result.summary,
                     contributor: isAnonymous ? "Anonymous" : currentUser.name,
@@ -97,6 +100,7 @@ export function AddClient() {
 
         try {
           const result = await summarizeUserInformation(summarizeInput);
+          contentToProcess = result.summary;
           newEntryData = {
             text: result.summary,
             contributor: isAnonymous ? "Anonymous" : currentUser.name,
@@ -118,7 +122,27 @@ export function AddClient() {
           addEntry(newEntryData);
         }
       }
-      
+
+      // Process for topic-level source tracking (in background, don't block UI)
+      console.log('[DEBUG] contentToProcess:', contentToProcess);
+      console.log('[DEBUG] awardedCredits:', awardedCredits);
+      if (contentToProcess && awardedCredits) {
+        console.log('[DEBUG] Calling processNewEntry...');
+        processNewEntry(contentToProcess, 'manual', {
+          user_tags: []
+        }).then((result) => {
+          console.log('[DEBUG] processNewEntry result:', result);
+          if (result.success) {
+            refreshSummaries();
+            console.log('Entry processed for topic tracking:', result);
+          }
+        }).catch((error) => {
+          console.error('[DEBUG] Error processing entry for topic tracking:', error);
+        });
+      } else {
+        console.log('[DEBUG] Skipping processNewEntry - condition not met');
+      }
+
       if (newEntryData) {
           setLatestEntry({ ...newEntryData, id: `entry-${Date.now()}`, userId: currentUser.id });
       }

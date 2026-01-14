@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Bold, Italic, Underline, Image as ImageIcon, Paperclip, UserX } from "lucide-react";
 import { useInformation } from '@/context/information-context';
+import { processNewEntry } from '@/services/entry-processor';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,7 +24,7 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
-    const { currentUser, addQuestion, addAnswer, addFollowUp, updateCreditBalance } = useInformation();
+    const { currentUser, addQuestion, addAnswer, addFollowUp, updateCreditBalance, refreshSummaries } = useInformation();
     const { toast } = useToast();
 
     const applyStyle = (style: 'bold' | 'italic' | 'underline' | 'h1' | 'h2' | 'h3') => {
@@ -137,11 +138,12 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
     const handlePost = () => {
         if (!content.trim()) return;
 
-        const author = isAnonymous 
+        const author = isAnonymous
             ? { id: 'anonymous', name: "Anonymous", department: "Unknown", avatar: "/avatars/anonymous.png" }
             : currentUser;
 
         let awardedCredits = false;
+        let contentForProcessing = '';
 
         switch (mode) {
             case "post-question":
@@ -151,6 +153,8 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 if(questionId) {
                     addAnswer(questionId, { text: content, author, upvotes: 0, downvotes: 0 }, question);
                     awardedCredits = true;
+                    // Create rich content for topic extraction that includes the question context
+                    contentForProcessing = `Question: ${question}\nAnswer: ${content}`;
                 }
                 break;
             case "follow-up-question":
@@ -160,6 +164,20 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 break;
         }
 
+        // Process for topic-level source tracking (in background)
+        if (contentForProcessing && awardedCredits) {
+            processNewEntry(contentForProcessing, 'help', {
+                original_question_id: questionId,
+            }).then((result) => {
+                if (result.success) {
+                    refreshSummaries();
+                    console.log('Help answer processed for topic tracking:', result);
+                }
+            }).catch((error) => {
+                console.error('Error processing help answer for topic tracking:', error);
+            });
+        }
+
         if (awardedCredits && !isAnonymous) {
             updateCreditBalance(currentUser.id, 10);
             toast({
@@ -167,7 +185,7 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 description: "You've earned 10 credits for your contribution.",
             });
         }
-        
+
         onPost();
     }
 

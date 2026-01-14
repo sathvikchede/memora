@@ -2,6 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { Summary, getAllSummaries as getStorageSummaries } from '@/services/storage';
 
 // Interfaces for our data structures
 export interface Club {
@@ -88,6 +89,9 @@ export interface ChatMessage {
     attachments?: { type: 'image' | 'file', url: string, name: string }[];
 }
 
+// Re-export Summary type for convenience
+export type { Summary } from '@/services/storage';
+
 // LocalStorage keys
 const ENTRIES_KEY = 'memora-entries';
 const QUESTIONS_KEY = 'memora-questions';
@@ -158,6 +162,10 @@ interface InformationContextType {
     entries: Entry[];
     addEntry: (entry: Omit<Entry, 'id' | 'userId'>) => void;
 
+    // Topic-level summaries (new system)
+    summaries: Summary[];
+    refreshSummaries: () => void;
+
     questions: Question[];
     addQuestion: (question: Omit<Question, 'id' | 'answers' | 'relevance'>) => void;
     addAnswer: (questionId: string, answer: Omit<Answer, 'followUps' | 'id'>, originalQuestion: string) => void;
@@ -191,6 +199,7 @@ const InformationContext = createContext<InformationContextType | undefined>(und
 
 export const InformationProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<Entry[]>([]);
+    const [summaries, setSummaries] = useState<Summary[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
@@ -230,7 +239,15 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
             setRememberStates(JSON.parse(savedRememberStates));
         }
 
+        // Load summaries from the new storage system
+        setSummaries(getStorageSummaries());
+
         setIsReady(true);
+    }, []);
+
+    // Function to refresh summaries from storage (call after processing entries)
+    const refreshSummaries = useCallback(() => {
+        setSummaries(getStorageSummaries());
     }, []);
 
     // Persist data to localStorage whenever it changes
@@ -478,13 +495,14 @@ export const InformationProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return (
-        <InformationContext.Provider value={{ 
-            entries, addEntry, 
+        <InformationContext.Provider value={{
+            entries, addEntry,
+            summaries, refreshSummaries,
             questions, addQuestion, addAnswer, addFollowUp, getQuestionById, upvoteAnswer, downvoteAnswer,
             chatMessages, getChatMessages, sendChatMessage, rememberStates, getRememberState, toggleRememberState,
             chatHistory, addHistoryItem, addMessageToHistory, getChatHistoryItem,
             users, currentUser, setCurrentUser, updateUser, updateCreditBalance,
-            isReady 
+            isReady
         }}>
             {children}
         </InformationContext.Provider>

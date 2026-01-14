@@ -28,6 +28,7 @@ import {
   Author,
   ChatMessage,
 } from '@/context/information-context';
+import { processNewEntry } from '@/services/entry-processor';
 
 interface ChatThreadProps {
   recipient: Author;
@@ -47,6 +48,7 @@ export function ChatThread({ recipient }: ChatThreadProps) {
     sendChatMessage,
     getRememberState,
     toggleRememberState,
+    refreshSummaries,
   } = useInformation();
   const [input, setInput] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -60,7 +62,25 @@ export function ChatThread({ recipient }: ChatThreadProps) {
 
   const handleSend = () => {
     if (input.trim() || uploadedFiles.length > 0) {
+      const messageContent = input.trim();
+      const shouldRemember = isRemembering && messageContent;
+
       sendChatMessage(conversationId, input, uploadedFiles);
+
+      // Process for topic-level source tracking if remembering
+      if (shouldRemember) {
+        processNewEntry(messageContent, 'chat', {
+          conversation_id: conversationId,
+        }).then((result) => {
+          if (result.success) {
+            refreshSummaries();
+            console.log('Chat message processed for topic tracking:', result);
+          }
+        }).catch((error) => {
+          console.error('Error processing chat message for topic tracking:', error);
+        });
+      }
+
       setInput('');
       setUploadedFiles([]);
     }

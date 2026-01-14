@@ -26,6 +26,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useInformation, Message, Entry } from "@/context/information-context";
 import { answerUserQuery, AnswerUserQueryInput } from "@/ai/flows/answer-user-queries-with-sources";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
+import { handleQuery as handleQueryWithSources } from "@/services/query-handler";
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,7 +49,7 @@ const initialMessages: Message[] = [
 ];
 
 export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: ChatInterfaceProps) {
-  const { entries, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem, currentUser, updateCreditBalance } = useInformation();
+  const { entries, summaries, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem, currentUser, updateCreditBalance } = useInformation();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -131,34 +132,59 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                 aiResponseText = `Sorry, I couldn't process the file ${file.name}.`;
             }
             setUploadedFiles([]);
-        } else if (entries.length === 0) {
+        } else if (entries.length === 0 && summaries.length === 0) {
             aiResponseText = `I don't have enough information yet. You can add information in the "Add" tab or by answering questions in the "Help" tab.`;
         } else {
-            const queryInput: AnswerUserQueryInput = {
-                query: userMessageText,
-                summaries: entries.map(e => e.text),
-                sources: entries.map(e => ({
-                    contributor: e.contributor,
-                    rawInformation: e.text,
-                    date: e.date,
-                    type: e.type,
-                })),
-            };
+            // Try the new topic-level source tracking system first if summaries exist
+            if (summaries.length > 0) {
+                try {
+                    const queryResult = await handleQueryWithSources(userMessageText);
 
-            try {
-                const result = await answerUserQuery(queryInput);
-                aiResponseText = result.answer || ''; // Fallback to empty string if null/undefined
-                sourcesForAnswer = result.sources;
-
-                if (aiResponseText) {
-                    // Deduct credit only if a valid answer is found
-                    updateCreditBalance(currentUser.id, -1);
-                    creditDeducted = true;
+                    if (!queryResult.insufficient_info && queryResult.answer) {
+                        aiResponseText = queryResult.answer;
+                        // Convert to the format expected by the sources view
+                        sourcesForAnswer = queryResult.original_entry_details.map(entry => ({
+                            contributor: 'Memora Knowledge Base',
+                            rawInformation: entry.content,
+                            date: entry.timestamp.split('T')[0],
+                            type: entry.source_type,
+                        }));
+                        // Deduct credit for valid answer
+                        updateCreditBalance(currentUser.id, -1);
+                        creditDeducted = true;
+                    }
+                } catch (error) {
+                    console.error("Error with topic-level query:", error);
+                    // Fall back to legacy system
                 }
+            }
 
-            } catch (error) {
-                console.error("Error calling AI flow:", error);
-                aiResponseText = "Sorry, I encountered an error while processing your request.";
+            // Fall back to legacy entry-based system if topic-level didn't return results
+            if (!aiResponseText && entries.length > 0) {
+                const queryInput: AnswerUserQueryInput = {
+                    query: userMessageText,
+                    summaries: entries.map(e => e.text),
+                    sources: entries.map(e => ({
+                        contributor: e.contributor,
+                        rawInformation: e.text,
+                        date: e.date,
+                        type: e.type,
+                    })),
+                };
+
+                try {
+                    const result = await answerUserQuery(queryInput);
+                    aiResponseText = result.answer || '';
+                    sourcesForAnswer = result.sources;
+
+                    if (aiResponseText) {
+                        updateCreditBalance(currentUser.id, -1);
+                        creditDeducted = true;
+                    }
+                } catch (error) {
+                    console.error("Error calling AI flow:", error);
+                    aiResponseText = "Sorry, I encountered an error while processing your request.";
+                }
             }
         }
         
