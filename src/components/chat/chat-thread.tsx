@@ -10,7 +10,6 @@ import {
   Image as ImageIcon,
   FileText,
   BrainCircuit,
-  Camera,
   X,
 } from 'lucide-react';
 import {
@@ -20,57 +19,124 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useFirebase } from '@/firebase';
+import { useSpace } from '@/context/space-context';
+import { useSpaceData } from '@/context/space-data-context';
 import {
-  useInformation,
-  Author,
-  ChatMessage,
-} from '@/context/information-context';
-import { processNewEntry } from '@/services/entry-processor';
+  getOrCreateConversation,
+  getChatMessages,
+  saveChatMessage,
+  FirestoreChatMessage,
+} from '@/services/firestore';
+import { processNewEntryFirestore } from '@/services/entry-processor-firestore';
+
+interface SpaceMember {
+  odId: string;
+  displayName: string;
+  year?: string;
+  branch?: string;
+}
 
 interface ChatThreadProps {
-  recipient: Author;
+  recipient: SpaceMember;
 }
 
 interface UploadedFile {
   id: string;
   name: string;
   type: 'image' | 'file';
-  url: string; // data URL
+  url: string;
 }
 
 export function ChatThread({ recipient }: ChatThreadProps) {
-  const {
-    currentUser,
-    getChatMessages,
-    sendChatMessage,
-    getRememberState,
-    toggleRememberState,
-    refreshSummaries,
-  } = useInformation();
+  const { user, firestore } = useFirebase();
+  const { currentSpaceId, userProfile } = useSpace();
+  const { refreshSummaries } = useSpaceData();
   const [input, setInput] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [messages, setMessages] = useState<Array<FirestoreChatMessage & { messageId: string }>>([]);
+  const [isRemembering, setIsRemembering] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
   const formId = useId();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const conversationId = [currentUser.id, recipient.id].sort().join('-');
-  const messages = getChatMessages(conversationId);
-  const isRemembering = getRememberState(conversationId);
+  // Get current user name
+  const getCurrentUserName = () => {
+    if (userProfile?.firstName && userProfile?.lastName) {
+      return `${userProfile.firstName} ${userProfile.lastName}`;
+    }
+    return user?.displayName || 'Me';
+  };
 
-  const handleSend = () => {
-    if (input.trim() || uploadedFiles.length > 0) {
-      const messageContent = input.trim();
-      const shouldRemember = isRemembering && messageContent;
+  // Load conversation and messages
+  useEffect(() => {
+    async function loadConversation() {
+      if (!currentSpaceId || !user) return;
 
-      sendChatMessage(conversationId, input, uploadedFiles);
+      try {
+        // Get or create conversation
+        const convo = await getOrCreateConversation(
+          firestore,
+          currentSpaceId,
+          user.uid,
+          recipient.odId,
+          getCurrentUserName(),
+          recipient.displayName
+        );
+        setConversationId(convo.conversationId);
+
+        // Load messages
+        const msgs = await getChatMessages(firestore, currentSpaceId, convo.conversationId);
+        setMessages(msgs);
+      } catch (error) {
+        console.error('Error loading conversation:', error);
+      }
+    }
+
+    loadConversation();
+  }, [currentSpaceId, user, recipient, firestore, userProfile]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if ((!input.trim() && uploadedFiles.length === 0) || !conversationId || !currentSpaceId || !user || isSending) return;
+
+    setIsSending(true);
+    const messageContent = input.trim();
+    const shouldRemember = isRemembering && !!messageContent;
+
+    try {
+      // Save message to Firestore
+      const savedMessage = await saveChatMessage(firestore, currentSpaceId, conversationId, {
+        conversationId,
+        senderId: user.uid,
+        content: messageContent,
+        remembered: shouldRemember,
+        attachments: uploadedFiles.map((f) => ({
+          type: f.type,
+          url: f.url,
+          name: f.name,
+        })),
+      });
+
+      // Add to local state
+      setMessages((prev) => [...prev, savedMessage]);
 
       // Process for topic-level source tracking if remembering
       if (shouldRemember) {
-        processNewEntry(messageContent, 'chat', {
-          conversation_id: conversationId,
+        processNewEntryFirestore(firestore, currentSpaceId, messageContent, 'chat', {
+          conversationId,
         }).then((result) => {
           if (result.success) {
             refreshSummaries();
@@ -83,6 +149,10 @@ export function ChatThread({ recipient }: ChatThreadProps) {
 
       setInput('');
       setUploadedFiles([]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -101,7 +171,7 @@ export function ChatThread({ recipient }: ChatThreadProps) {
       };
       reader.readAsDataURL(file);
     }
-    event.target.value = ''; // Reset file input
+    event.target.value = '';
   };
 
   const removeUploadedFile = (id: string) => {
@@ -113,24 +183,21 @@ export function ChatThread({ recipient }: ChatThreadProps) {
       textareaRef.current.style.height = 'auto';
       const scrollHeight = textareaRef.current.scrollHeight;
       const maxHeight = isMobile ? 84 : 120;
-      textareaRef.current.style.height = `${Math.min(
-        scrollHeight,
-        maxHeight
-      )}px`;
+      textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }
   }, [input, isMobile]);
 
   return (
     <div className="flex h-full flex-col">
       <div className="relative flex-1">
-        <ScrollArea className="h-full pr-4">
+        <ScrollArea className="h-full pr-4" ref={scrollRef}>
           <div className="space-y-6 py-4">
             {messages.map((message) => (
               <div
-                key={message.id}
+                key={message.messageId}
                 className={cn(
                   'relative flex items-start gap-3',
-                  message.senderId === currentUser.id
+                  message.senderId === user?.uid
                     ? 'justify-end'
                     : 'justify-start'
                 )}
@@ -138,16 +205,15 @@ export function ChatThread({ recipient }: ChatThreadProps) {
                 {message.remembered && (
                   <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-white"></div>
                 )}
-                {message.senderId === recipient.id && (
+                {message.senderId === recipient.odId && (
                   <Avatar className="h-8 w-8 ml-4">
-                    <AvatarImage src={recipient.avatar} />
-                    <AvatarFallback>{recipient.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{recipient.displayName.charAt(0)}</AvatarFallback>
                   </Avatar>
                 )}
                 <div
                   className={cn(
                     'max-w-[75%] rounded-lg',
-                    message.senderId === currentUser.id
+                    message.senderId === user?.uid
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted',
                     message.remembered && 'ml-4'
@@ -157,6 +223,11 @@ export function ChatThread({ recipient }: ChatThreadProps) {
                 </div>
               </div>
             ))}
+            {messages.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                Start a conversation with {recipient.displayName}
+              </p>
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -198,7 +269,7 @@ export function ChatThread({ recipient }: ChatThreadProps) {
           <div className="flex h-12 items-center justify-evenly gap-2 rounded-md border p-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex-1" aria-label="Upload">
+                <Button variant="ghost" className="flex-1" aria-label="Upload" disabled={isSending}>
                   <Upload />
                   <span className="hidden md:ml-2 md:inline">Upload</span>
                 </Button>
@@ -232,7 +303,8 @@ export function ChatThread({ recipient }: ChatThreadProps) {
               variant={isRemembering ? 'secondary' : 'ghost'}
               className="flex-1"
               aria-label="Remember this"
-              onClick={() => toggleRememberState(conversationId)}
+              onClick={() => setIsRemembering(!isRemembering)}
+              disabled={isSending}
             >
               <BrainCircuit />
               <span className="hidden md:ml-2 md:inline">Remember this</span>
@@ -242,6 +314,7 @@ export function ChatThread({ recipient }: ChatThreadProps) {
               variant="ghost"
               className="flex-1"
               aria-label="Voice Input"
+              disabled={isSending}
             >
               <Mic />
               <span className="hidden md:ml-2 md:inline">Voice</span>
@@ -268,14 +341,19 @@ export function ChatThread({ recipient }: ChatThreadProps) {
               placeholder="Chat with them..."
               className="min-h-[48px] resize-none rounded-full py-3.5 pr-12"
               rows={1}
+              disabled={isSending}
             />
             <Button
               type="submit"
               size="icon"
               className="absolute right-2 rounded-full"
-              disabled={!input.trim() && uploadedFiles.length === 0}
+              disabled={(!input.trim() && uploadedFiles.length === 0) || isSending}
             >
-              <Send className="h-4 w-4" />
+              {isSending ? (
+                <div className="h-4 w-4 border-2 border-background/80 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </form>
         </div>

@@ -23,10 +23,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useInformation, Message, Entry } from "@/context/information-context";
+import { useSpaceData, Message } from "@/context/space-data-context";
+import { useSpace } from "@/context/space-context";
+import { useFirebase } from "@/firebase";
 import { answerUserQuery, AnswerUserQueryInput } from "@/ai/flows/answer-user-queries-with-sources";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
-import { handleQuery as handleQueryWithSources } from "@/services/query-handler";
+import { handleQueryFirestore } from "@/services/query-handler-firestore";
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,7 +43,7 @@ interface UploadedFile {
   id: string;
   name: string;
   type: 'image' | 'file';
-  url: string; // data URL
+  url: string;
 }
 
 const initialMessages: Message[] = [
@@ -49,7 +51,9 @@ const initialMessages: Message[] = [
 ];
 
 export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: ChatInterfaceProps) {
-  const { entries, summaries, addEntry, getChatHistoryItem, addMessageToHistory, addHistoryItem, currentUser, updateCreditBalance } = useInformation();
+  const { entries, summaries, addEntry, getChatHistoryItemById, addMessageToHistory, addHistoryItem } = useSpaceData();
+  const { currentSpaceId } = useSpace();
+  const { user, firestore } = useFirebase();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -65,50 +69,40 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
 
   useEffect(() => {
     if (chatId) {
-      const historyItem = getChatHistoryItem(chatId);
+      const historyItem = getChatHistoryItemById(chatId);
       if (historyItem) {
         setMessages(historyItem.messages);
       }
     } else {
       setMessages(initialMessages);
     }
-  }, [chatId, getChatHistoryItem]);
+  }, [chatId, getChatHistoryItemById]);
 
 
   const handleSend = async () => {
     if (input.trim() || uploadedFiles.length > 0) {
-        if (currentUser.creditBalance < 1) {
-            toast({
-                variant: "destructive",
-                title: "Insufficient Credits",
-                description: "You don't have enough credits to ask a question.",
-            });
-            return;
-        }
-
         setMessages(prev => prev.map(m => ({ ...m, showActions: false })));
         const userMessageText = input.trim();
         const userMessage: Message = { id: `user-${Date.now()}`, text: userMessageText, sender: 'user' };
-        
+
         let currentChatId = chatId;
         // If it's a new chat, create a history item first
         if (!currentChatId) {
-            const newHistoryItem = addHistoryItem(userMessageText, [userMessage]);
+            const newHistoryItem = await addHistoryItem(userMessageText, [userMessage]);
             currentChatId = newHistoryItem.id;
             if (onNewChat) {
                 onNewChat(currentChatId);
             }
         } else {
-             addMessageToHistory(currentChatId, userMessage);
+             await addMessageToHistory(currentChatId, userMessage);
         }
 
         setMessages(prev => [...prev, userMessage]);
         setInput("");
         setIsThinking(true);
-        
+
         let aiResponseText = '';
         let sourcesForAnswer: any[] = [];
-        let creditDeducted = false;
 
         if (uploadedFiles.length > 0) {
             const file = uploadedFiles[0];
@@ -118,15 +112,27 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
             };
             try {
                 const result = await processMultimediaInput(multimediaInput);
-                const newEntry: Omit<Entry, 'id' | 'userId'> = {
-                    text: result.summary,
-                    contributor: currentUser.name,
-                    date: new Date().toISOString().split("T")[0],
-                    type: 'add' as const,
-                };
-                addEntry(newEntry);
+                // Save as entry to Firestore
+                const savedEntry = await addEntry({
+                    sourceType: 'manual',
+                    content: result.summary,
+                    contributor: user?.displayName || 'Anonymous',
+                    status: 'success',
+                    metadata: {
+                        attachments: [{
+                            type: file.type,
+                            url: file.url,
+                            name: file.name
+                        }]
+                    }
+                });
                 aiResponseText = `I've processed the content of "${file.name}". Here's a summary: ${result.summary}\n\nHow can I help you with this information?`;
-                sourcesForAnswer = [newEntry];
+                sourcesForAnswer = [{
+                    contributor: user?.displayName || 'Anonymous',
+                    rawInformation: result.summary,
+                    date: new Date().toISOString().split("T")[0],
+                    type: 'manual'
+                }];
             } catch(error) {
                 console.error("Error processing multimedia:", error);
                 aiResponseText = `Sorry, I couldn't process the file ${file.name}.`;
@@ -137,13 +143,12 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
         } else {
             console.log('[QUERY DEBUG] entries.length:', entries.length);
             console.log('[QUERY DEBUG] summaries.length:', summaries.length);
-            console.log('[QUERY DEBUG] summaries:', summaries);
 
             // Try the new topic-level source tracking system first if summaries exist
-            if (summaries.length > 0) {
+            if (summaries.length > 0 && firestore && currentSpaceId) {
                 console.log('[QUERY DEBUG] Trying topic-level query system...');
                 try {
-                    const queryResult = await handleQueryWithSources(userMessageText);
+                    const queryResult = await handleQueryFirestore(firestore, currentSpaceId, userMessageText);
                     console.log('[QUERY DEBUG] queryResult:', queryResult);
 
                     if (!queryResult.insufficient_info && queryResult.answer) {
@@ -156,9 +161,6 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                             date: entry.timestamp.split('T')[0],
                             type: entry.source_type,
                         }));
-                        // Deduct credit for valid answer
-                        updateCreditBalance(currentUser.id, -1);
-                        creditDeducted = true;
                     } else {
                         console.log('[QUERY DEBUG] Topic-level returned insufficient_info or no answer');
                     }
@@ -167,7 +169,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                     // Fall back to legacy system
                 }
             } else {
-                console.log('[QUERY DEBUG] No summaries found, skipping topic-level system');
+                console.log('[QUERY DEBUG] No summaries found or Firestore not available, skipping topic-level system');
             }
 
             // Fall back to legacy entry-based system if topic-level didn't return results
@@ -175,12 +177,12 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                 console.log('[QUERY DEBUG] Falling back to legacy entry-based system');
                 const queryInput: AnswerUserQueryInput = {
                     query: userMessageText,
-                    summaries: entries.map(e => e.text),
+                    summaries: entries.map(e => e.content),
                     sources: entries.map(e => ({
-                        contributor: e.contributor,
-                        rawInformation: e.text,
-                        date: e.date,
-                        type: e.type,
+                        contributor: e.contributor || 'Anonymous',
+                        rawInformation: e.content,
+                        date: e.createdAt?.toDate?.()?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+                        type: e.sourceType,
                     })),
                 };
 
@@ -188,38 +190,26 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                     const result = await answerUserQuery(queryInput);
                     aiResponseText = result.answer || '';
                     sourcesForAnswer = result.sources;
-
-                    if (aiResponseText) {
-                        updateCreditBalance(currentUser.id, -1);
-                        creditDeducted = true;
-                    }
                 } catch (error) {
                     console.error("Error calling AI flow:", error);
                     aiResponseText = "Sorry, I encountered an error while processing your request.";
                 }
             }
         }
-        
+
         if (!aiResponseText) {
             aiResponseText = `I don't have enough information to answer that question. You can add more information or post this question to the community.`;
         }
 
-        if (creditDeducted) {
-            toast({
-                title: "Credit Deducted",
-                description: "1 credit has been deducted for this query.",
-            });
-        }
-
-        const aiResponse: Message = { 
-            id: `ai-${Date.now()}`, 
-            text: aiResponseText, 
-            sender: 'ai', 
-            showActions: true 
+        const aiResponse: Message = {
+            id: `ai-${Date.now()}`,
+            text: aiResponseText,
+            sender: 'ai',
+            showActions: true
         };
 
         if (currentChatId) {
-            addMessageToHistory(currentChatId, aiResponse, sourcesForAnswer);
+            await addMessageToHistory(currentChatId, aiResponse, sourcesForAnswer);
         }
         setMessages(prev => [...prev, aiResponse]);
         setIsThinking(false);
@@ -243,7 +233,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
     }
     if(event.target) event.target.value = '';
   };
-  
+
   const removeUploadedFile = (id: string) => {
     setUploadedFiles((prev) => prev.filter((file) => file.id !== id));
   };
@@ -286,7 +276,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
         setInput(prev => prev ? `${prev} ${finalTranscript}` : finalTranscript);
       }
     };
-    
+
     recognitionRef.current.start();
   };
 
@@ -298,7 +288,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
       textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }
   }, [input, isMobile]);
-  
+
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -424,7 +414,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                         <DropdownMenuItem asChild><label className="flex items-center"><FileText className="mr-2 h-4 w-4" /> File<input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} /></label></DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                
+
                 <Button variant={isRecording ? "secondary" : "ghost"} className="flex-1" aria-label="Voice Input" onClick={handleVoiceInput} disabled={isThinking}>
                     <Mic />
                     <span className="hidden md:ml-2 md:inline">Voice</span>

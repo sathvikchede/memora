@@ -5,21 +5,29 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import React, { useEffect, useState } from 'react';
-import { useInformation, Question as QuestionType, Author as AuthorType, Answer as AnswerType } from "@/context/information-context";
+import { useSpaceData } from "@/context/space-data-context";
+import { useFirebase } from "@/firebase";
+import { FirestoreQuestion, FirestoreAnswer } from "@/services/firestore";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from 'react-markdown';
 
-const ThreadItem = ({ 
-    children, 
-    author, 
-    level = 0, 
+// Author type for display purposes
+interface DisplayAuthor {
+    id: string;
+    name: string;
+}
+
+const ThreadItem = ({
+    children,
+    author,
+    level = 0,
     onChat,
     isLast,
-}: { 
-    children: React.ReactNode, 
-    author: AuthorType, 
-    level?: number, 
+}: {
+    children: React.ReactNode,
+    author: DisplayAuthor,
+    level?: number,
     onChat: () => void,
     isLast: boolean,
 }) => {
@@ -27,16 +35,14 @@ const ThreadItem = ({
         <div className="relative flex items-start gap-3">
             <div className="relative z-10 flex flex-col items-center">
                 <Avatar className="h-8 w-8">
-                    <AvatarImage src={author.avatar} alt={author.name} />
                     <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 {!isLast && <div className="absolute top-10 left-1/2 -translate-x-1/2 h-[calc(100%_-_1rem)] w-0.5 bg-border"></div>}
             </div>
-            
+
             <div className="w-full">
                 <div className="flex items-center gap-2">
                     <p className="font-semibold text-sm">{author.name}</p>
-                    <p className="text-xs text-muted-foreground">{author.department}</p>
                     <Button variant="link" size="sm" onClick={onChat} className="ml-auto p-0 h-auto text-muted-foreground">Chat</Button>
                 </div>
                 <div className="mt-2 prose prose-sm dark:prose-invert max-w-none">
@@ -54,22 +60,22 @@ interface QuestionThreadProps {
 }
 
 export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThreadProps) {
-    const { questions, currentUser, upvoteAnswer, downvoteAnswer } = useInformation();
+    const { questions, upvoteAnswer, downvoteAnswer } = useSpaceData();
+    const { user } = useFirebase();
     const [isClient, setIsClient] = useState(false);
     const [expandedAnswers, setExpandedAnswers] = useState<string[]>([]);
     const router = useRouter();
 
     const handleChat = (userId: string) => {
-        if (userId !== currentUser.id) {
+        if (user && userId !== user.uid) {
             router.push(`/chat?userId=${userId}`);
         }
     };
 
-
     const toggleAnswerExpansion = (answerId: string) => {
-        setExpandedAnswers(prev => 
-            prev.includes(answerId) 
-                ? prev.filter(id => id !== answerId) 
+        setExpandedAnswers(prev =>
+            prev.includes(answerId)
+                ? prev.filter(id => id !== answerId)
                 : [...prev, answerId]
         );
     };
@@ -78,83 +84,95 @@ export function QuestionThread({ questionId, onAnswer, onFollowUp }: QuestionThr
         setIsClient(true);
     }, []);
 
-    if (!isClient) {
+    if (!isClient || !user) {
         return null;
     }
 
-    const thread = questions.find(q => q.id === questionId); 
+    const thread = questions.find(q => q.questionId === questionId);
 
     if (!thread) {
         return <div>Question not found.</div>
     }
 
-    const isYourQuery = thread.author.id === currentUser.id;
+    const isYourQuery = thread.askedBy === user.uid;
 
-    const canFollowUp = (level: number) => level < 2;
-
-    const renderAnswers = (question: QuestionType, answers: AnswerType[], level: number) => {
+    const renderAnswers = (question: FirestoreQuestion & { questionId: string }, answers: FirestoreAnswer[]) => {
         return answers.map((answer, index) => {
-            const hasFollowUps = answer.followUps && answer.followUps.length > 0;
             const isExpanded = expandedAnswers.includes(answer.id);
             const isLastInGroup = index === answers.length - 1;
-            
+
+            const author: DisplayAuthor = {
+                id: answer.authorId,
+                name: answer.authorName,
+            };
+
             return (
                 <div className="space-y-6" key={answer.id}>
-                    <ThreadItem author={answer.author} level={level + 1} onChat={() => handleChat(answer.author.id)} isLast={isLastInGroup && !hasFollowUps}>
+                    <ThreadItem author={author} level={1} onChat={() => handleChat(answer.authorId)} isLast={isLastInGroup}>
                         <div className={cn(!isExpanded && "line-clamp-3")}>
                             <ReactMarkdown>{answer.text}</ReactMarkdown>
                         </div>
-                        <Button 
-                            variant="link" 
+                        <Button
+                            variant="link"
                             className="w-auto h-auto p-0 text-xs text-muted-foreground mt-2"
                             onClick={() => toggleAnswerExpansion(answer.id)}
                         >
                             {isExpanded ? 'Read less' : 'Read more'}
                         </Button>
                         <div className="mt-2 flex items-center gap-2">
-                            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground" onClick={() => upvoteAnswer(question.id, answer.id)}><ThumbsUp className="h-4 w-4" /> {answer.upvotes}</Button>
-                            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground" onClick={() => downvoteAnswer(question.id, answer.id)}><ThumbsDown className="h-4 w-4" /> {answer.downvotes}</Button>
-                            {isYourQuery && canFollowUp(level) && (
-                                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onFollowUp(question.id, answer.id, question.question)}>Follow-up</Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1 text-muted-foreground"
+                                onClick={() => upvoteAnswer(question.questionId, answer.id)}
+                            >
+                                <ThumbsUp className="h-4 w-4" /> {answer.upvotes}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1 text-muted-foreground"
+                                onClick={() => downvoteAnswer(question.questionId, answer.id)}
+                            >
+                                <ThumbsDown className="h-4 w-4" /> {answer.downvotes}
+                            </Button>
+                            {isYourQuery && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground"
+                                    onClick={() => onFollowUp(question.questionId, answer.id, question.question)}
+                                >
+                                    Follow-up
+                                </Button>
                             )}
                         </div>
                     </ThreadItem>
-                    {hasFollowUps && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderFollowUps(question, answer.followUps, level + 1)}</div>}
                 </div>
             );
         });
     }
 
-    const renderFollowUps = (originalQuestion: QuestionType, followUps: QuestionType[], level: number) => {
-        return followUps.map((followUp, index) => {
-             const hasAnswers = followUp.answers && followUp.answers.length > 0;
-             const isLast = index === followUps.length - 1 && !hasAnswers;
+    const hasAnswers = thread.answers && thread.answers.length > 0;
 
-            return (
-                <div className="space-y-6" key={followUp.id}>
-                    <ThreadItem author={followUp.author} level={level + 1} onChat={() => handleChat(followUp.author.id)} isLast={isLast}>
-                        <ReactMarkdown className="font-semibold">{followUp.question}</ReactMarkdown>
-                         <div className="mt-2 flex items-center gap-2">
-                            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => onAnswer(followUp.id, followUp.question)}>Answer</Button>
-                        </div>
-                    </ThreadItem>
-                    {hasAnswers && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderAnswers(followUp, followUp.answers, level + 1)}</div>}
-                </div>
-            );
-        });
-    }
-
-    const hasAnswers = thread.answers.length > 0;
+    const questionAuthor: DisplayAuthor = {
+        id: thread.askedBy,
+        name: thread.askedByName,
+    };
 
     return (
         <div className="space-y-6">
-           <ThreadItem author={thread.author} level={0} onChat={() => handleChat(thread.author.id)} isLast={!hasAnswers}>
+           <ThreadItem author={questionAuthor} level={0} onChat={() => handleChat(thread.askedBy)} isLast={!hasAnswers}>
                 <ReactMarkdown className="text-lg font-bold">{thread.question}</ReactMarkdown>
                 <div className="mt-4 flex items-center gap-2">
-                    <Button onClick={() => onAnswer(thread.id, thread.question)}>Answer</Button>
+                    <Button onClick={() => onAnswer(thread.questionId, thread.question)}>Answer</Button>
                 </div>
             </ThreadItem>
-            {hasAnswers && <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">{renderAnswers(thread, thread.answers, 0)}</div>}
+            {hasAnswers && (
+                <div className="mt-6 space-y-6 pl-4 border-l-2 border-border ml-4">
+                    {renderAnswers(thread, thread.answers)}
+                </div>
+            )}
         </div>
     );
 }

@@ -6,6 +6,7 @@ import { getUserProfile } from '@/services/auth';
 import { LandingPage } from './landing-page';
 import { OnboardingFlow } from './onboarding-flow';
 import { SpaceProvider } from '@/context/space-context';
+import { SpaceDataProvider } from '@/context/space-data-context';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -127,10 +128,12 @@ export function AuthGate({ children }: AuthGateProps) {
     );
   }
 
-  // Authenticated with space - render the app with SpaceProvider
+  // Authenticated with space - render the app with SpaceProvider and SpaceDataProvider
   return (
     <SpaceProvider initialSpaceId={authState.currentSpaceId}>
-      {children}
+      <SpaceDataProvider>
+        {children}
+      </SpaceDataProvider>
     </SpaceProvider>
   );
 }

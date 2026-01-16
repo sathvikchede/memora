@@ -4,9 +4,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { History, PlusCircle, ChevronLeft, Edit } from "lucide-react";
+import { History, PlusCircle, ChevronLeft } from "lucide-react";
 import { ChatInterface } from "./chat-interface";
-import { useInformation, ChatHistoryItem } from "@/context/information-context";
+import { useSpaceData, ChatHistoryItem } from "@/context/space-data-context";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type View = "new-chat" | "history" | "chat-detail" | "sources";
@@ -14,7 +14,7 @@ type View = "new-chat" | "history" | "chat-detail" | "sources";
 export function AskClient() {
   const [view, setView] = useState<View>("new-chat");
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const { chatHistory, getChatHistoryItem, currentUser } = useInformation();
+  const { chatHistory, getChatHistoryItemById } = useSpaceData();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -54,9 +54,8 @@ export function AskClient() {
     router.push(`/help?view=post-question&question=${encodeURIComponent(question)}`);
   };
 
-  const activeChat = activeChatId ? getChatHistoryItem(activeChatId) : null;
-  const userChatHistory = chatHistory.filter(item => item.userId === currentUser.id);
-  
+  const activeChat = activeChatId ? getChatHistoryItemById(activeChatId) : null;
+
   const truncateTitle = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
@@ -84,7 +83,7 @@ export function AskClient() {
             backAction = () => navigate("chat-detail", { id: activeChatId! });
             break;
     }
-    
+
     if (!showBackButton) {
         return (
             <>
@@ -118,30 +117,30 @@ export function AskClient() {
         case "history":
             return (
                 <div className="divide-y divide-border">
-                    {userChatHistory.map(item => (
+                    {chatHistory.map(item => (
                         <div key={item.id} onClick={() => navigate("chat-detail", { id: item.id })} className="flex cursor-pointer items-center justify-between p-4 hover:bg-accent">
                             <span className="font-medium truncate">{item.title}</span>
                             <span className="text-sm text-muted-foreground whitespace-nowrap">{new Date(item.date).toLocaleDateString()}</span>
                         </div>
                     ))}
-                    {userChatHistory.length === 0 && <p className="p-4 text-center text-muted-foreground">No chat history yet.</p>}
+                    {chatHistory.length === 0 && <p className="p-4 text-center text-muted-foreground">No chat history yet.</p>}
                 </div>
             );
         case "chat-detail":
-            return <ChatInterface 
+            return <ChatInterface
                         key={activeChatId}
                         chatId={activeChatId}
-                        onShowSources={() => navigate('sources', { id: activeChatId! })} 
-                        onPost={handlePost} 
+                        onShowSources={() => navigate('sources', { id: activeChatId! })}
+                        onPost={handlePost}
                     />;
         case "sources":
-            const sourcesForChat = activeChat ? chatHistory.find(c => c.id === activeChat.id)?.sources || [] : [];
+            const sourcesForChat = activeChat ? activeChat.sources || [] : [];
             return (
                 <div className="divide-y divide-border p-4">
                     {sourcesForChat.map((source, index) => (
                         <div key={index} className="py-4">
                             <div className="flex justify-between text-sm text-muted-foreground">
-                                <span>{source.type.charAt(0).toUpperCase() + source.type.slice(1)}</span>
+                                <span>{source.type?.charAt(0).toUpperCase() + source.type?.slice(1) || 'Unknown'}</span>
                                 <span>{source.date}</span>
                             </div>
                             <p className="my-2">{source.rawInformation}</p>
@@ -156,11 +155,11 @@ export function AskClient() {
                 </div>
             );
         default:
-            return <ChatInterface 
-                      key="new-chat" 
+            return <ChatInterface
+                      key="new-chat"
                       onNewChat={(id) => navigate("chat-detail", { id })}
-                      onShowSources={() => {}} // This won't be called in new chat
-                      onPost={handlePost} 
+                      onShowSources={() => {}}
+                      onPost={handlePost}
                     />;
     }
   };

@@ -2,35 +2,40 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useInformation } from "@/context/information-context";
-import { useState, useEffect } from "react";
+import { useSpaceData } from "@/context/space-data-context";
+import { useFirebase } from "@/firebase";
+import { useState, useEffect, useMemo } from "react";
 
 interface YourQueriesProps {
     onQuestionSelect: (id: string, question: string) => void;
 }
 
 export function YourQueries({ onQuestionSelect }: YourQueriesProps) {
-    const { questions, currentUser } = useInformation();
+    const { questions } = useSpaceData();
+    const { user } = useFirebase();
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
     }, []);
 
+    const yourQueries = useMemo(() => {
+        if (!isClient || !user) return [];
+        return questions.filter(q => q.askedBy === user.uid);
+    }, [questions, user, isClient]);
+
     if (!isClient) {
-        return null; // or a loading skeleton
+        return null;
     }
-    
-    const yourQueries = questions.filter(q => q.author.id === currentUser.id);
 
     return (
         <div className="space-y-2">
             {yourQueries.map(query => (
-                <Button 
-                    key={query.id} 
-                    variant="outline" 
+                <Button
+                    key={query.questionId}
+                    variant="outline"
                     className="w-full justify-start h-auto text-left whitespace-normal"
-                    onClick={() => onQuestionSelect(query.id, query.question)}
+                    onClick={() => onQuestionSelect(query.questionId, query.question)}
                 >
                     {query.question}
                 </Button>

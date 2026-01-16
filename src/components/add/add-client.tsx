@@ -25,12 +25,15 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useInformation, Entry } from "@/context/information-context";
+import { useSpaceData } from "@/context/space-data-context";
+import { useSpace } from "@/context/space-context";
 import { Separator } from "@/components/ui/separator";
 import { processMultimediaInput, ProcessMultimediaInputInput } from "@/ai/flows/process-multimedia-input";
 import { summarizeUserInformation, SummarizeUserInformationInput } from "@/ai/flows/summarize-user-information";
-import { processNewEntry } from "@/services/entry-processor";
+import { processNewEntryFirestore } from "@/services/entry-processor-firestore";
+import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { FirestoreEntry } from "@/services/firestore";
 
 interface UploadedFile {
   id: string;
@@ -39,8 +42,19 @@ interface UploadedFile {
   url: string; // data URL
 }
 
+// Local display entry type
+interface DisplayEntry {
+  id: string;
+  text: string;
+  contributor: string;
+  date: string;
+  status?: 'success' | 'adjusted' | 'mismatch';
+}
+
 export function AddClient() {
-  const { entries, addEntry, currentUser, updateCreditBalance, refreshSummaries } = useInformation();
+  const { entries, addEntry, refreshSummaries } = useSpaceData();
+  const { userProfile, currentSpaceId } = useSpace();
+  const { user, firestore } = useFirebase();
   const { toast } = useToast();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,14 +68,23 @@ export function AddClient() {
   const [view, setView] = useState<'add' | 'history'>('add');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [latestEntry, setLatestEntry] = useState<Entry | null>(null);
+  const [latestEntry, setLatestEntry] = useState<DisplayEntry | null>(null);
+
+  // Get current user name
+  const getCurrentUserName = () => {
+    if (userProfile?.firstName && userProfile?.lastName) {
+      return `${userProfile.firstName} ${userProfile.lastName}`;
+    }
+    return user?.displayName || 'Anonymous';
+  };
 
   const handleSend = async () => {
     if (input.trim() || uploadedFiles.length > 0) {
       setIsSending(true);
-      let newEntryData: Omit<Entry, 'id' | 'userId'> | null = null;
+      let displayEntry: DisplayEntry | null = null;
       let awardedCredits = false;
       let contentToProcess = '';
+      const contributorName = isAnonymous ? "Anonymous" : getCurrentUserName();
 
       if (uploadedFiles.length > 0) {
         for (const file of uploadedFiles) {
@@ -72,25 +95,47 @@ export function AddClient() {
             try {
                 const result = await processMultimediaInput(multimediaInput);
                 contentToProcess = result.summary;
-                newEntryData = {
+
+                // Save to Firestore
+                const savedEntry = await addEntry({
+                    sourceType: 'manual',
+                    content: result.summary,
+                    contributor: contributorName,
+                    status: 'success',
+                    metadata: {
+                      attachments: [{
+                        type: file.type,
+                        url: file.url,
+                        name: file.name
+                      }]
+                    }
+                });
+
+                displayEntry = {
+                    id: savedEntry.entryId,
                     text: result.summary,
-                    contributor: isAnonymous ? "Anonymous" : currentUser.name,
+                    contributor: contributorName,
                     date: new Date().toISOString().split("T")[0],
-                    type: 'add',
                     status: 'success'
                 };
-                addEntry(newEntryData);
                 awardedCredits = true;
             } catch (error) {
                 console.error("Error processing file:", error);
-                 newEntryData = {
+
+                const savedEntry = await addEntry({
+                    sourceType: 'manual',
+                    content: `Failed to process file: ${file.name}`,
+                    contributor: contributorName,
+                    status: 'mismatch'
+                });
+
+                displayEntry = {
+                    id: savedEntry.entryId,
                     text: `Failed to process file: ${file.name}`,
-                    contributor: isAnonymous ? "Anonymous" : currentUser.name,
+                    contributor: contributorName,
                     date: new Date().toISOString().split("T")[0],
-                    type: 'add',
                     status: 'mismatch'
                 };
-                addEntry(newEntryData);
             }
         }
       } else if (input.trim()) {
@@ -101,37 +146,52 @@ export function AddClient() {
         try {
           const result = await summarizeUserInformation(summarizeInput);
           contentToProcess = result.summary;
-          newEntryData = {
-            text: result.summary,
-            contributor: isAnonymous ? "Anonymous" : currentUser.name,
-            date: new Date().toISOString().split("T")[0],
-            type: 'add',
-            status: 'success'
+
+          // Save to Firestore
+          const savedEntry = await addEntry({
+              sourceType: 'manual',
+              content: result.summary,
+              contributor: contributorName,
+              status: 'success'
+          });
+
+          displayEntry = {
+              id: savedEntry.entryId,
+              text: result.summary,
+              contributor: contributorName,
+              date: new Date().toISOString().split("T")[0],
+              status: 'success'
           };
-          addEntry(newEntryData);
           awardedCredits = true;
         } catch (error) {
           console.error("Error summarizing information:", error);
-          newEntryData = {
-            text: "Failed to summarize and add your entry.",
-            contributor: isAnonymous ? "Anonymous" : currentUser.name,
-            date: new Date().toISOString().split("T")[0],
-            type: 'add',
-            status: 'mismatch'
+
+          const savedEntry = await addEntry({
+              sourceType: 'manual',
+              content: "Failed to summarize and add your entry.",
+              contributor: contributorName,
+              status: 'mismatch'
+          });
+
+          displayEntry = {
+              id: savedEntry.entryId,
+              text: "Failed to summarize and add your entry.",
+              contributor: contributorName,
+              date: new Date().toISOString().split("T")[0],
+              status: 'mismatch'
           };
-          addEntry(newEntryData);
         }
       }
 
       // Process for topic-level source tracking (in background, don't block UI)
       console.log('[DEBUG] contentToProcess:', contentToProcess);
       console.log('[DEBUG] awardedCredits:', awardedCredits);
-      if (contentToProcess && awardedCredits) {
-        console.log('[DEBUG] Calling processNewEntry...');
-        processNewEntry(contentToProcess, 'manual', {
-          user_tags: []
+      if (contentToProcess && awardedCredits && firestore && currentSpaceId) {
+        console.log('[DEBUG] Calling processNewEntryFirestore...');
+        processNewEntryFirestore(firestore, currentSpaceId, contentToProcess, 'manual', {
+          userTags: []
         }).then((result) => {
-          console.log('[DEBUG] processNewEntry result:', result);
+          console.log('[DEBUG] processNewEntryFirestore result:', result);
           if (result.success) {
             refreshSummaries();
             console.log('Entry processed for topic tracking:', result);
@@ -140,17 +200,17 @@ export function AddClient() {
           console.error('[DEBUG] Error processing entry for topic tracking:', error);
         });
       } else {
-        console.log('[DEBUG] Skipping processNewEntry - condition not met');
+        console.log('[DEBUG] Skipping processNewEntryFirestore - condition not met');
       }
 
-      if (newEntryData) {
-          setLatestEntry({ ...newEntryData, id: `entry-${Date.now()}`, userId: currentUser.id });
+      if (displayEntry) {
+          setLatestEntry(displayEntry);
       }
       if (awardedCredits && !isAnonymous) {
-          updateCreditBalance(currentUser.id, 10);
+          // TODO: Credits system will be implemented in future iteration
           toast({
-              title: "Credits Awarded!",
-              description: "You've earned 10 credits for your contribution.",
+              title: "Entry Added!",
+              description: "Your information has been added to the knowledge base.",
           });
       }
       setInput("");
@@ -249,7 +309,10 @@ export function AddClient() {
     }
   }
 
-  const entriesForAdd = entries.filter(e => e.type === 'add' && e.userId === currentUser.id);
+  // Filter entries for manual/add type that were created by current user
+  const entriesForAdd = entries.filter(e =>
+    e.sourceType === 'manual' && e.createdBy === user?.uid
+  );
   
   const handleNewChatClick = () => {
     setView('add');
@@ -391,12 +454,12 @@ export function AddClient() {
   const renderHistoryView = () => (
     <ScrollArea className="flex-1 pr-4">
       <div className="space-y-4 py-4">
-        {entriesForAdd.slice().reverse().map(entry => (
-          <div key={entry.id} className="space-y-2">
+        {entriesForAdd.map(entry => (
+          <div key={entry.entryId} className="space-y-2">
             {entry.contributor === 'Anonymous' && (
               <p className="text-xs font-semibold text-muted-foreground">Anonymous (You)</p>
             )}
-            <div className="rounded-md border p-4">{entry.text}</div>
+            <div className="rounded-md border p-4">{entry.content}</div>
             {entry.status && (
               <Alert variant={entry.status === 'mismatch' ? 'destructive' : 'default'} className="border-0">
                 <AlertDescription className="text-muted-foreground">

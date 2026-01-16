@@ -5,8 +5,10 @@ import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Bold, Italic, Underline, Image as ImageIcon, Paperclip, UserX } from "lucide-react";
-import { useInformation } from '@/context/information-context';
-import { processNewEntry } from '@/services/entry-processor';
+import { useSpaceData } from '@/context/space-data-context';
+import { useSpace } from '@/context/space-context';
+import { useFirebase } from '@/firebase';
+import { processNewEntryFirestore } from '@/services/entry-processor-firestore';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,11 +23,22 @@ interface PostEditorProps {
 export function PostEditor({ mode, question = "", questionId, answerId, onPost }: PostEditorProps) {
     const [content, setContent] = useState(mode === 'post-question' ? question : "");
     const [isAnonymous, setIsAnonymous] = useState(false);
+    const [isPosting, setIsPosting] = useState(false);
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
-    const { currentUser, addQuestion, addAnswer, addFollowUp, updateCreditBalance, refreshSummaries } = useInformation();
+    const { addQuestion, addAnswer, refreshSummaries } = useSpaceData();
+    const { userProfile, currentSpaceId } = useSpace();
+    const { user, firestore } = useFirebase();
     const { toast } = useToast();
+
+    // Get current user name
+    const getCurrentUserName = () => {
+        if (userProfile?.firstName && userProfile?.lastName) {
+            return `${userProfile.firstName} ${userProfile.lastName}`;
+        }
+        return user?.displayName || 'Anonymous';
+    };
 
     const applyStyle = (style: 'bold' | 'italic' | 'underline' | 'h1' | 'h2' | 'h3') => {
         const textarea = editorRef.current;
@@ -74,10 +87,10 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
         }
 
         const textToInsert = selectedText || placeholder;
-        
+
         const before = content.substring(0, start);
         const after = content.substring(end);
-        
+
         let newText: string;
         let selectionStart: number;
         let selectionEnd: number;
@@ -117,10 +130,10 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
 
         const textarea = editorRef.current;
         const start = textarea.selectionStart;
-        
+
         // This is a placeholder. In a real app, you'd upload the file and get a URL.
         const fileMarkdown = isImage ? `![${file.name}](placeholder_url_for_${file.name})` : `[${file.name}](placeholder_url_for_${file.name})`;
-        
+
         const newText = `${content.substring(0, start)} ${fileMarkdown} ${content.substring(start)}`;
         setContent(newText);
 
@@ -135,65 +148,74 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
         }
     }
 
-    const handlePost = () => {
-        if (!content.trim()) return;
+    const handlePost = async () => {
+        if (!content.trim() || isPosting) return;
 
-        const author = isAnonymous
-            ? { id: 'anonymous', name: "Anonymous", department: "Unknown", avatar: "/avatars/anonymous.png" }
-            : currentUser;
+        setIsPosting(true);
 
-        let awardedCredits = false;
-        let contentForProcessing = '';
+        try {
+            let awardedCredits = false;
+            let contentForProcessing = '';
 
-        switch (mode) {
-            case "post-question":
-                addQuestion({ question: content, author });
-                break;
-            case "answer-question":
-                if(questionId) {
-                    addAnswer(questionId, { text: content, author, upvotes: 0, downvotes: 0 }, question);
-                    awardedCredits = true;
-                    // Create rich content for topic extraction that includes the question context
-                    contentForProcessing = `Question: ${question}\nAnswer: ${content}`;
-                }
-                break;
-            case "follow-up-question":
-                 if (answerId && questionId) {
-                    addFollowUp(answerId, { question: content, author, parentId: questionId }, question);
-                }
-                break;
-        }
+            switch (mode) {
+                case "post-question":
+                    await addQuestion(content);
+                    break;
+                case "answer-question":
+                    if (questionId) {
+                        await addAnswer(questionId, content, question);
+                        awardedCredits = true;
+                        // Create rich content for topic extraction that includes the question context
+                        contentForProcessing = `Question: ${question}\nAnswer: ${content}`;
+                    }
+                    break;
+                case "follow-up-question":
+                     if (answerId && questionId) {
+                        // For now, follow-ups are posted as new questions with a reference
+                        await addQuestion(content);
+                    }
+                    break;
+            }
 
-        // Process for topic-level source tracking (in background)
-        if (contentForProcessing && awardedCredits) {
-            processNewEntry(contentForProcessing, 'help', {
-                original_question_id: questionId,
-            }).then((result) => {
-                if (result.success) {
-                    refreshSummaries();
-                    console.log('Help answer processed for topic tracking:', result);
-                }
-            }).catch((error) => {
-                console.error('Error processing help answer for topic tracking:', error);
-            });
-        }
+            // Process for topic-level source tracking (in background)
+            if (contentForProcessing && awardedCredits && firestore && currentSpaceId) {
+                processNewEntryFirestore(firestore, currentSpaceId, contentForProcessing, 'help', {
+                    questionId: questionId,
+                }).then((result) => {
+                    if (result.success) {
+                        refreshSummaries();
+                        console.log('Help answer processed for topic tracking:', result);
+                    }
+                }).catch((error) => {
+                    console.error('Error processing help answer for topic tracking:', error);
+                });
+            }
 
-        if (awardedCredits && !isAnonymous) {
-            updateCreditBalance(currentUser.id, 10);
+            if (awardedCredits && !isAnonymous) {
+                toast({
+                    title: "Answer Posted!",
+                    description: "Your answer has been added to the knowledge base.",
+                });
+            }
+
+            onPost();
+        } catch (error) {
+            console.error('Error posting:', error);
             toast({
-                title: "Credits Awarded!",
-                description: "You've earned 10 credits for your contribution.",
+                title: "Error",
+                description: "Failed to post. Please try again.",
+                variant: "destructive",
             });
+        } finally {
+            setIsPosting(false);
         }
-
-        onPost();
     }
 
     return (
         <div className="flex h-full flex-col">
             <input type="file" ref={fileInputRef} onChange={(e) => handleFileChange(e, false)} className="hidden" />
             <input type="file" ref={imageInputRef} accept="image/*" onChange={(e) => handleFileChange(e, true)} className="hidden" />
-            
+
             <div className="flex flex-wrap items-center gap-2 border-b p-2">
                 <Button variant="ghost" size="sm" onClick={() => applyStyle('h1')}>H1</Button>
                 <Button variant="ghost" size="sm" onClick={() => applyStyle('h2')}>H2</Button>
@@ -203,9 +225,9 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                 <Button variant="ghost" size="icon" onClick={() => applyStyle('underline')}><Underline className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => imageInputRef.current?.click()}><ImageIcon className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}><Paperclip className="h-4 w-4" /></Button>
-                 <Button 
-                    variant={isAnonymous ? "secondary" : "ghost"} 
-                    size="sm" 
+                 <Button
+                    variant={isAnonymous ? "secondary" : "ghost"}
+                    size="sm"
                     onClick={() => setIsAnonymous(!isAnonymous)}
                 >
                     <UserX className="mr-2 h-4 w-4" /> Anonymous
@@ -229,8 +251,8 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
                </div>
             </div>
             <div className="flex-shrink-0 p-4">
-                <Button className="w-full" onClick={handlePost} disabled={!content.trim()}>
-                    {getButtonText()}
+                <Button className="w-full" onClick={handlePost} disabled={!content.trim() || isPosting}>
+                    {isPosting ? 'Posting...' : getButtonText()}
                 </Button>
             </div>
         </div>
