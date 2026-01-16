@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { MainSidebar } from "@/components/layout/main-sidebar";
 import { Header } from "@/components/layout/header";
+import { AuthGate } from "@/components/auth";
 
 const TABS: { [key: string]: string } = {
   "/ask": "Ask.",
@@ -31,6 +32,7 @@ export default function MainLayout({
   // The user is managed by the InformationProvider.
 
   return (
+    <AuthGate>
       <SidebarProvider>
         <Sidebar collapsible="icon">
           <MainSidebar activeTab={pathname} />
@@ -42,5 +44,6 @@ export default function MainLayout({
           </div>
         </SidebarInset>
       </SidebarProvider>
+    </AuthGate>
   );
 }
