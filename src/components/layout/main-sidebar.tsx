@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import {
   SidebarHeader,
@@ -7,6 +8,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   HelpCircle,
@@ -15,9 +17,9 @@ import {
   MessageSquareText,
   Users,
   Atom,
-  User,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { SpaceSwitcher, UserMenu, JoinSpaceDialog } from "@/components/space";
 
 const MIcon = () => (
     <svg
@@ -54,7 +56,6 @@ const menuItems = [
 
 const bottomMenuItems = [
   { href: "/space", icon: Atom, label: "Space.", tooltip: "Space" },
-  { href: "/profile", icon: User, label: "Profile.", tooltip: "Profile" },
 ];
 
 interface MainSidebarProps {
@@ -63,17 +64,18 @@ interface MainSidebarProps {
 
 export function MainSidebar({ activeTab }: MainSidebarProps) {
   const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
 
   return (
     <>
-      <SidebarHeader className="p-4">
-        {state === "expanded" ? (
-          <h1 className="text-2xl font-bold">memora.</h1>
-        ) : (
-          <MIcon />
-        )}
+      <SidebarHeader className="p-2">
+        <SpaceSwitcher
+          collapsed={isCollapsed}
+          onJoinSpace={() => setJoinDialogOpen(true)}
+        />
       </SidebarHeader>
-      <SidebarContent className="p-2 pt-16">
+      <SidebarContent className="p-2 pt-4">
         <SidebarMenu>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
@@ -110,7 +112,13 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
+        <SidebarSeparator className="my-2" />
+        <UserMenu collapsed={isCollapsed} />
       </SidebarFooter>
+      <JoinSpaceDialog
+        open={joinDialogOpen}
+        onOpenChange={setJoinDialogOpen}
+      />
     </>
   );
 }

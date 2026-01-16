@@ -5,6 +5,7 @@ import { useFirebase } from '@/firebase';
 import { getUserProfile } from '@/services/auth';
 import { LandingPage } from './landing-page';
 import { OnboardingFlow } from './onboarding-flow';
+import { SpaceProvider } from '@/context/space-context';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -126,6 +127,10 @@ export function AuthGate({ children }: AuthGateProps) {
     );
   }
 
-  // Authenticated with space - render the app
-  return <>{children}</>;
+  // Authenticated with space - render the app with SpaceProvider
+  return (
+    <SpaceProvider initialSpaceId={authState.currentSpaceId}>
+      {children}
+    </SpaceProvider>
+  );
 }
