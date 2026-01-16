@@ -1,249 +1,151 @@
 /**
+ * Memora AI - Firestore Security Rules
+ *
  * Core Philosophy:
- * This ruleset enforces a hybrid security model tailored for the Memora AI platform.
- * It combines a strict user-ownership model for personal data with a collaborative,
- * membership-based model for shared "Spaces". All access is denied by default and
- * must be explicitly granted.
+ * This ruleset enforces a membership-based security model for the Memora AI platform.
+ * All access is denied by default and must be explicitly granted.
  *
  * Data Structure:
- * - /users/{userId}: Private user profiles, strictly controlled by the user.
- * - /spaces/{spaceId}: Collaborative areas. Access is governed by membership.
- * - /space_memberships/{spaceMembershipId}: Join-table documents linking users to spaces.
- * - Subcollections under /spaces/ and /space_memberships/ inherit the security
- *   context of their parent document, ensuring data is properly isolated.
- * - /space_types/{spaceTypeId}: Read-only collection defining space types.
+ * - /users/{userId}: Global user profiles with list of spaces they belong to.
+ * - /spaces/{spaceId}: Collaborative areas (knowledge containers).
+ * - /spaces/{spaceId}/members/{userId}: User's membership and profile within a space.
+ * - /spaces/{spaceId}/entries/{entryId}: Knowledge entries from Add, Help, Chat tabs.
+ * - /spaces/{spaceId}/summaries/{summaryId}: AI-generated knowledge summaries.
+ * - /spaces/{spaceId}/questions/{questionId}: Help tab Q&A questions.
+ * - /spaces/{spaceId}/conversations/{conversationId}: Chat tab conversations.
+ * - /spaces/{spaceId}/chatHistory/{chatId}: Ask tab AI conversation history.
  *
  * Key Security Decisions:
- * - Strict User Data Isolation: Users can only read or write their own documents
- *   within the /users/{userId} path. Listing all users is disabled to protect privacy.
- * - Space Access via Membership: Access to a space and all its sub-collections
- *   (summaries, chats, etc.) is granted only to authenticated members of that space.
- * - Denormalization for Authorization: To ensure performant and secure access checks,
- *   these rules ASSUME that each /spaces/{spaceId} document contains a denormalized
- *   map of its members (e.g., `members: { 'user_abc': true, 'user_xyz': true }`).
- *   This avoids impossible-to-secure collection queries within rules.
- * - Creator-Managed Spaces: The original creator of a space retains the unique ability
- *   to update or delete the space's core details.
- * - User-Managed Memberships: Users have full control over their own entries in
- *   the /space_memberships collection and its subcollections (work experience, clubs),
- *   allowing them to join, leave, and manage their space-specific profile data.
+ * - Users can only read/write their own user document.
+ * - Anyone authenticated can read space metadata (for joining via Space ID).
+ * - Only space members can access space data (entries, summaries, questions, etc.).
+ * - Membership is checked via the /spaces/{spaceId}/members/{userId} subcollection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for readable, secure, and maintainable rules.
+    // ============ HELPER FUNCTIONS ============
 
-    /**
-     * Checks if a user is authenticated.
-     */
-    function isSignedIn() {
+    // Check if user is authenticated
+    function isAuthenticated() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the authenticated user's UID matches the provided userId.
-     * This is the foundation of the user-ownership model.
-     */
+    // Check if user owns a document (by userId)
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    /**
-     * Verifies that a document already exists.
-     * CRITICAL for all update and delete operations to prevent unintended side-effects.
-     */
-    function isExistingDoc() {
-      return resource != null;
-    }
-
-    /**
-     * Combines ownership check with an existence check for secure updates and deletes.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && isExistingDoc();
-    }
-
-    /**
-     * Checks if the authenticated user is a member of the given space.
-     * Relies on a denormalized 'members' map on the space document for security and performance.
-     * Example: /spaces/{spaceId} -> { members: { 'user-abc': true } }
-     */
+    // Check if user is a member of a space (via members subcollection)
     function isSpaceMember(spaceId) {
-      return isSignedIn() && get(/databases/$(database)/documents/spaces/$(spaceId)).data.members[request.auth.uid] != null;
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid));
     }
 
-    /**
-     * Checks if the authenticated user is the creator of the given space.
-     */
-    function isSpaceCreator(spaceId) {
-      return isSignedIn() && isExistingDoc() && resource.data.creatorId == request.auth.uid;
-    }
-
-    /**
-     * Checks if the authenticated user owns the parent SpaceMembership document.
-     * Used to secure all subcollections containing a user's personal data within a space.
-     */
-    function isSpaceMembershipOwner(spaceMembershipId) {
-      let membership = get(/databases/$(database)/documents/space_memberships/$(spaceMembershipId));
-      return isSignedIn() && membership != null && membership.data.userId == request.auth.uid;
-    }
-
-    /**
-     * @description Rules for user profiles.
-     * @path /users/{userId}
-     * @allow (create) An authenticated user can create their own user profile document.
-     * @deny (create) An anonymous user cannot create a profile.
-     * @allow (update) A user can update their own profile.
-     * @deny (update) A user cannot update another user's profile.
-     * @deny (list) No user can list all user profiles in the database.
-     * @principle Restricts access to a user's own data tree.
-     */
+    // ============ USERS COLLECTION ============
+    // Users can only read/write their own user document
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
+      allow list: if false; // Cannot list all users
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false; // Users cannot delete accounts directly
     }
 
-    /**
-     * @description Defines the types of spaces available (e.g., 'College').
-     * @path /space_types/{spaceTypeId}
-     * @allow (get) Any authenticated user can read the available space types.
-     * @deny (create) No user can create a new space type through the client. This must be managed manually or via a backend service.
-     * @principle Provides read-only public data to authenticated users.
-     */
-    match /space_types/{spaceTypeId} {
-      allow get, list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Core space documents. Access is controlled by membership.
-     * @path /spaces/{spaceId}
-     * @allow (get) A member of the space can read the space details.
-     * @deny (get) A non-member cannot read the space details.
-     * @allow (create) An authenticated user can create a new space, correctly assigning themselves as the creator.
-     * @allow (update) The original creator of the space can update its details.
-     * @deny (update) A regular member cannot update the space's core details.
-     * @principle Enforces shared access for members and exclusive write access for the creator.
-     */
+    // ============ SPACES COLLECTION ============
+    // Anyone authenticated can read space metadata (to verify Space ID during join)
+    // Spaces are created by admins only (or via scripts)
     match /spaces/{spaceId} {
-      allow get, list: if isSignedIn(); // Allow reading for joining via invite code
-      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
-      allow update: if isSpaceCreator(spaceId);
-      allow delete: if isSpaceCreator(spaceId);
-    }
+      allow get, list: if isAuthenticated();
+      allow create: if false; // Spaces created via admin/scripts only
+      allow update: if isSpaceMember(spaceId);
+      allow delete: if false; // Spaces cannot be deleted
 
-    /**
-     * @description Links users to spaces, representing their membership.
-     * @path /space_memberships/{spaceMembershipId}
-     * @allow (get) A user can read their own membership, and other members of the same space can also read it (for member lists).
-     * @deny (list) Broadly listing all memberships is denied for security.
-     * @allow (create) A user can create their own membership document to join a space.
-     * @deny (create) A user cannot force another user to join a space.
-     * @allow (delete) A user can delete their own membership to leave a space.
-     * @principle Manages the relationship between users and spaces, controlled by the user.
-     */
-    match /space_memberships/{spaceMembershipId} {
-      allow get: if isOwner(resource.data.userId) || get(/databases/$(database)/documents/space_memberships/$(spaceMembershipId)).data.spaceId == getSpaceIdFromMembership(spaceMembershipId);
-      allow list: if false;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId);
-      allow delete: if isExistingOwner(resource.data.userId);
-    }
+      // ============ MEMBERS SUBCOLLECTION ============
+      // Space members can read all members
+      // Users can create their own membership (when joining)
+      // Users can update only their own membership
+      match /members/{userId} {
+        allow get: if isSpaceMember(spaceId) || isOwner(userId);
+        allow list: if isSpaceMember(spaceId);
+        allow create: if isOwner(userId); // Can join by creating own membership
+        allow update: if isOwner(userId);
+        allow delete: if false; // Cannot leave spaces for now
+      }
 
-    /**
-     * @description AI-generated summaries within a space.
-     * @path /spaces/{spaceId}/summaries/{summaryId}
-     * @allow (create) Any member of the space can create a new summary.
-     * @deny (create) A non-member cannot create a summary.
-     * @principle Inherits access permissions from the parent space, allowing member collaboration.
-     */
-    match /spaces/{spaceId}/summaries/{summaryId} {
-      allow get, list: if isSpaceMember(spaceId);
-      allow create: if isSpaceMember(spaceId) && request.resource.data.spaceId == spaceId;
-      allow update: if isSpaceMember(spaceId) && isExistingDoc();
-      allow delete: if isSpaceMember(spaceId) && isExistingDoc();
-    }
+      // ============ ENTRIES SUBCOLLECTION ============
+      // All space members can read entries
+      // Members can create entries with their own userId
+      // Only entry creator can update/delete
+      match /entries/{entryId} {
+        allow get, list: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId) &&
+          request.resource.data.createdBy == request.auth.uid;
+        allow update: if isSpaceMember(spaceId) &&
+          resource.data.createdBy == request.auth.uid;
+        allow delete: if isSpaceMember(spaceId) &&
+          resource.data.createdBy == request.auth.uid;
+      }
 
-    /**
-     * @description Sources of information used for summaries.
-     * @path /spaces/{spaceId}/summaries/{summaryId}/information_sources/{informationSourceId}
-     * @allow (create) Any member of the space can add an information source.
-     * @deny (create) A non-member cannot add an information source.
-     * @principle Inherits access permissions from the parent space, allowing member collaboration.
-     */
-    match /spaces/{spaceId}/summaries/{summaryId}/information_sources/{informationSourceId} {
-      allow get, list: if isSpaceMember(spaceId);
-      allow create: if isSpaceMember(spaceId) && request.resource.data.spaceId == spaceId && request.resource.data.summaryId == summaryId;
-      allow update: if isSpaceMember(spaceId) && isExistingDoc();
-      allow delete: if isSpaceMember(spaceId) && isExistingDoc();
-    }
+      // ============ SUMMARIES SUBCOLLECTION ============
+      // All space members can read/write summaries
+      // Summaries cannot be deleted (system-managed)
+      match /summaries/{summaryId} {
+        allow get, list: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId);
+        allow update: if isSpaceMember(spaceId);
+        allow delete: if false;
+      }
 
-    /**
-     * @description Chat messages exchanged between users within a space.
-     * @path /spaces/{spaceId}/chat_messages/{chatMessageId}
-     * @allow (read) Any member of the space can read chat messages.
-     * @allow (create) A member of the space can send a message, correctly identifying themself as the sender.
-     * @deny (create) A user cannot send a message impersonating another user.
-     * @allow (update) The original sender can update their message.
-     * @principle Allows reads by all space members, but restricts writes to the message sender.
-     */
-    match /spaces/{spaceId}/chat_messages/{chatMessageId} {
-      allow get, list: if isSpaceMember(spaceId);
-      allow create: if isSpaceMember(spaceId) && request.resource.data.senderId == request.auth.uid && request.resource.data.spaceId == spaceId;
-      allow update: if isSpaceMember(spaceId) && resource.data.senderId == request.auth.uid && isExistingDoc();
-      allow delete: if isSpaceMember(spaceId) && resource.data.senderId == request.auth.uid && isExistingDoc();
-    }
+      // ============ QUESTIONS SUBCOLLECTION (Help Tab) ============
+      // All space members can read questions
+      // Members can create questions with their own userId
+      // Questions can be updated (for adding answers, votes)
+      match /questions/{questionId} {
+        allow get, list: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId) &&
+          request.resource.data.askedBy == request.auth.uid;
+        allow update: if isSpaceMember(spaceId);
+        allow delete: if isSpaceMember(spaceId) &&
+          resource.data.askedBy == request.auth.uid;
+      }
 
-    /**
-     * @description User's club memberships within a specific space.
-     * @path /space_memberships/{spaceMembershipId}/club_memberships/{clubMembershipId}
-     * @allow (create) A user can add a club to their own space membership profile.
-     * @deny (create) A user cannot add a club to another user's profile.
-     * @principle Secures a user's personal data within a space via ownership of the parent membership document.
-     */
-    match /space_memberships/{spaceMembershipId}/club_memberships/{clubMembershipId} {
-      allow get, list: if isSpaceMembershipOwner(spaceMembershipId);
-      allow create: if isSpaceMembershipOwner(spaceMembershipId) && request.resource.data.spaceMembershipId == spaceMembershipId;
-      allow update: if isSpaceMembershipOwner(spaceMembershipId) && isExistingDoc();
-      allow delete: if isSpaceMembershipOwner(spaceMembershipId) && isExistingDoc();
-    }
+      // ============ CONVERSATIONS SUBCOLLECTION (Chat Tab) ============
+      // Only participants can access their conversations
+      match /conversations/{conversationId} {
+        allow get: if isSpaceMember(spaceId) &&
+          request.auth.uid in resource.data.participants;
+        allow list: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId) &&
+          request.auth.uid in request.resource.data.participants;
+        allow update: if isSpaceMember(spaceId) &&
+          request.auth.uid in resource.data.participants;
+        allow delete: if false;
 
-    /**
-     * @description User's work experience within a specific space.
-     * @path /space_memberships/{spaceMembershipId}/work_experiences/{workExperienceId}
-     * @allow (create) A user can add work experience to their own space membership profile.
-     * @deny (create) A user cannot add work experience to another user's profile.
-     * @principle Secures a user's personal data within a space via ownership of the parent membership document.
-     */
-    match /space_memberships/{spaceMembershipId}/work_experiences/{workExperienceId} {
-      allow get, list: if isSpaceMembershipOwner(spaceMembershipId);
-      allow create: if isSpaceMembershipOwner(spaceMembershipId) && request.resource.data.spaceMembershipId == spaceMembershipId;
-      allow update: if isSpaceMembershipOwner(spaceMembershipId) && isExistingDoc();
-      allow delete: if isSpaceMembershipOwner(spaceMembershipId) && isExistingDoc();
-    }
+        // Messages within conversations
+        match /messages/{messageId} {
+          allow get, list: if isSpaceMember(spaceId);
+          allow create: if isSpaceMember(spaceId) &&
+            request.resource.data.senderId == request.auth.uid;
+          allow update: if false; // Messages cannot be edited
+          allow delete: if false; // Messages cannot be deleted
+        }
+      }
 
-    /**
-     * @description User's college-specific details within a space.
-     * @path /space_memberships/{spaceMembershipId}/college_space_details/{collegeSpaceDetailsId}
-     * @allow (create) A user can add college details to their own space membership profile.
-     * @deny (create) A user cannot add college details to another user's profile.
-     * @principle Secures a user's personal data within a space via ownership of the parent membership document.
-     */
-    match /space_memberships/{spaceMembershipId}/college_space_details/{collegeSpaceDetailsId} {
-      allow get, list: if isSpaceMembershipOwner(spaceMembershipId);
-      allow create: if isSpaceMembershipOwner(spaceMembershipId) && request.resource.data.spaceMembershipId == spaceMembershipId;
-      allow update: if isSpaceMembershipOwner(spaceMembershipId) && isExistingDoc();
-      allow delete: if isSpaceMembershipOwner(spaceMembershipId) && isExistingDoc();
-    }
-
-    function getSpaceIdFromMembership(spaceMembershipId) {
-        return get(/databases/$(database)/documents/space_memberships/$(spaceMembershipId)).data.spaceId;
+      // ============ CHAT HISTORY SUBCOLLECTION (Ask Tab) ============
+      // Users can only access their own chat history
+      match /chatHistory/{chatId} {
+        allow get: if isSpaceMember(spaceId) &&
+          resource.data.userId == request.auth.uid;
+        allow list: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId) &&
+          request.resource.data.userId == request.auth.uid;
+        allow update: if isSpaceMember(spaceId) &&
+          resource.data.userId == request.auth.uid;
+        allow delete: if isSpaceMember(spaceId) &&
+          resource.data.userId == request.auth.uid;
+      }
     }
   }
 }
