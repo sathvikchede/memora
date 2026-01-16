@@ -64,6 +64,14 @@ export interface SpaceMember {
   profile: SpaceMemberProfile;
 }
 
+export interface SpaceVerification {
+  required: boolean;
+  type: 'email' | 'code' | 'none';
+  emailPattern?: string; // Regex pattern for email verification (e.g., "^[a-zA-Z0-9]+@grietcollege\\.com$")
+  emailDomain?: string;  // Domain for display purposes (e.g., "grietcollege.com")
+  verificationMessage?: string; // Custom message to show during verification
+}
+
 export interface SpaceData {
   spaceId: string;
   name: string;
@@ -73,6 +81,7 @@ export interface SpaceData {
     yearOptions: string[];
     branchOptions: string[];
   };
+  verification?: SpaceVerification;
 }
 
 export interface SignInResult {
@@ -234,4 +243,95 @@ export async function setLastActiveSpace(
   await updateDoc(doc(firestore, 'users', userId), {
     lastActiveSpace: spaceId
   });
+}
+
+/**
+ * Store email verification OTP in Firestore
+ * OTP expires after 10 minutes
+ */
+export async function storeEmailVerificationOTP(
+  firestore: Firestore,
+  userId: string,
+  spaceId: string,
+  email: string,
+  otp: string
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+  await setDoc(doc(firestore, 'emailVerifications', `${userId}_${spaceId}`), {
+    userId,
+    spaceId,
+    email,
+    otp,
+    createdAt: serverTimestamp(),
+    expiresAt: Timestamp.fromDate(expiresAt),
+    verified: false
+  });
+}
+
+/**
+ * Verify email OTP
+ */
+export async function verifyEmailOTP(
+  firestore: Firestore,
+  userId: string,
+  spaceId: string,
+  otp: string
+): Promise<{ success: boolean; error?: string }> {
+  const verificationDoc = await getDoc(doc(firestore, 'emailVerifications', `${userId}_${spaceId}`));
+
+  if (!verificationDoc.exists()) {
+    return { success: false, error: 'Verification not found. Please request a new code.' };
+  }
+
+  const data = verificationDoc.data();
+  const expiresAt = data.expiresAt.toDate();
+
+  if (new Date() > expiresAt) {
+    return { success: false, error: 'Verification code has expired. Please request a new code.' };
+  }
+
+  if (data.otp !== otp) {
+    return { success: false, error: 'Invalid verification code. Please try again.' };
+  }
+
+  // Mark as verified
+  await updateDoc(doc(firestore, 'emailVerifications', `${userId}_${spaceId}`), {
+    verified: true
+  });
+
+  return { success: true };
+}
+
+/**
+ * Check if user has verified email for a space
+ */
+export async function isEmailVerifiedForSpace(
+  firestore: Firestore,
+  userId: string,
+  spaceId: string
+): Promise<boolean> {
+  const verificationDoc = await getDoc(doc(firestore, 'emailVerifications', `${userId}_${spaceId}`));
+
+  if (!verificationDoc.exists()) {
+    return false;
+  }
+
+  return verificationDoc.data().verified === true;
+}
+
+/**
+ * Get stored verification email for a space
+ */
+export async function getVerifiedEmailForSpace(
+  firestore: Firestore,
+  userId: string,
+  spaceId: string
+): Promise<string | null> {
+  const verificationDoc = await getDoc(doc(firestore, 'emailVerifications', `${userId}_${spaceId}`));
+
+  if (!verificationDoc.exists() || !verificationDoc.data().verified) {
+    return null;
+  }
+
+  return verificationDoc.data().email;
 }

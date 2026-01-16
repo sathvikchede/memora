@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useFirebase } from '@/firebase';
-import { getUserProfile, SpaceData } from '@/services/auth';
+import { getUserProfile, SpaceData, isEmailVerifiedForSpace } from '@/services/auth';
 import { NameCollection } from './name-collection';
 import { SpaceIdEntry } from './space-id-entry';
 import { SpaceProfileCollection } from './space-profile-collection';
+import { EmailVerification } from './email-verification';
 
-type OnboardingStep = 'loading' | 'name' | 'spaceId' | 'profile';
+type OnboardingStep = 'loading' | 'name' | 'spaceId' | 'verification' | 'profile';
 
 interface OnboardingFlowProps {
   isNewUser: boolean;
@@ -60,10 +61,34 @@ export function OnboardingFlow({ isNewUser, onComplete }: OnboardingFlowProps) {
     setStep('spaceId');
   }
 
-  function handleSpaceVerified(spaceId: string, spaceData: SpaceData) {
+  async function handleSpaceVerified(spaceId: string, spaceData: SpaceData) {
     setSelectedSpaceId(spaceId);
     setSelectedSpaceData(spaceData);
+
+    // Check if verification is required for this space
+    if (spaceData.verification?.required && spaceData.verification.type === 'email') {
+      // Check if user has already verified for this space
+      if (user) {
+        const alreadyVerified = await isEmailVerifiedForSpace(firestore, user.uid, spaceId);
+        if (alreadyVerified) {
+          setStep('profile');
+          return;
+        }
+      }
+      setStep('verification');
+    } else {
+      setStep('profile');
+    }
+  }
+
+  function handleEmailVerified() {
     setStep('profile');
+  }
+
+  function handleBackFromVerification() {
+    setSelectedSpaceId(null);
+    setSelectedSpaceData(null);
+    setStep('spaceId');
   }
 
   function handleProfileComplete(spaceId: string) {
@@ -88,6 +113,18 @@ export function OnboardingFlow({ isNewUser, onComplete }: OnboardingFlowProps) {
   // Space ID entry step
   if (step === 'spaceId') {
     return <SpaceIdEntry onSpaceVerified={handleSpaceVerified} />;
+  }
+
+  // Email verification step (for spaces that require it)
+  if (step === 'verification' && selectedSpaceId && selectedSpaceData) {
+    return (
+      <EmailVerification
+        spaceId={selectedSpaceId}
+        spaceData={selectedSpaceData}
+        onVerified={handleEmailVerified}
+        onBack={handleBackFromVerification}
+      />
+    );
   }
 
   // Profile collection step
