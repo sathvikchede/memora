@@ -186,10 +186,12 @@ export function AddClient() {
       // Process for topic-level source tracking (in background, don't block UI)
       console.log('[DEBUG] contentToProcess:', contentToProcess);
       console.log('[DEBUG] awardedCredits:', awardedCredits);
-      if (contentToProcess && awardedCredits && firestore && currentSpaceId) {
-        console.log('[DEBUG] Calling processNewEntryFirestore...');
+      console.log('[DEBUG] displayEntry:', displayEntry);
+      if (contentToProcess && awardedCredits && firestore && currentSpaceId && displayEntry) {
+        console.log('[DEBUG] Calling processNewEntryFirestore with entryId:', displayEntry.id);
         processNewEntryFirestore(firestore, currentSpaceId, contentToProcess, 'manual', {
-          userTags: []
+          userTags: [],
+          existingEntryId: displayEntry.id // Pass the actual Firestore entry ID
         }).then((result) => {
           console.log('[DEBUG] processNewEntryFirestore result:', result);
           if (result.success) {

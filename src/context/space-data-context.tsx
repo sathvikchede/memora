@@ -68,7 +68,7 @@ interface SpaceDataContextType {
   // Questions (Help tab)
   questions: Array<FirestoreQuestion & { questionId: string }>;
   addQuestion: (questionText: string) => Promise<FirestoreQuestion & { questionId: string }>;
-  addAnswer: (questionId: string, answerText: string, originalQuestion: string) => Promise<void>;
+  addAnswer: (questionId: string, answerText: string, originalQuestion: string) => Promise<{ entryId: string } | void>;
   upvoteAnswer: (questionId: string, answerId: string) => Promise<void>;
   downvoteAnswer: (questionId: string, answerId: string) => Promise<void>;
   refreshQuestions: () => Promise<void>;
@@ -240,7 +240,7 @@ export function SpaceDataProvider({ children }: SpaceDataProviderProps) {
     questionId: string,
     answerText: string,
     originalQuestion: string
-  ): Promise<void> => {
+  ): Promise<{ entryId: string } | void> => {
     if (!currentSpaceId || !user) return;
 
     const answer: FirestoreAnswer = {
@@ -256,7 +256,7 @@ export function SpaceDataProvider({ children }: SpaceDataProviderProps) {
     await addAnswerToQuestion(firestore, currentSpaceId, questionId, answer);
 
     // Also save as an entry for knowledge base
-    await addEntryHandler({
+    const savedEntry = await addEntryHandler({
       sourceType: 'help',
       content: `In response to "${originalQuestion}", the answer is: ${answerText}`,
       contributor: getCurrentUserName(),
@@ -268,6 +268,9 @@ export function SpaceDataProvider({ children }: SpaceDataProviderProps) {
     });
 
     await refreshQuestions();
+
+    // Return the entry ID so callers can use it for topic tracking
+    return { entryId: savedEntry.entryId };
   }, [currentSpaceId, user, firestore, getCurrentUserName, addEntryHandler]);
 
   const upvoteAnswerHandler = useCallback(async (questionId: string, answerId: string) => {

@@ -157,13 +157,16 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
             let awardedCredits = false;
             let contentForProcessing = '';
 
+            let savedEntryId: string | undefined;
+
             switch (mode) {
                 case "post-question":
                     await addQuestion(content);
                     break;
                 case "answer-question":
                     if (questionId) {
-                        await addAnswer(questionId, content, question);
+                        const result = await addAnswer(questionId, content, question);
+                        savedEntryId = result?.entryId;
                         awardedCredits = true;
                         // Create rich content for topic extraction that includes the question context
                         contentForProcessing = `Question: ${question}\nAnswer: ${content}`;
@@ -178,9 +181,10 @@ export function PostEditor({ mode, question = "", questionId, answerId, onPost }
             }
 
             // Process for topic-level source tracking (in background)
-            if (contentForProcessing && awardedCredits && firestore && currentSpaceId) {
+            if (contentForProcessing && awardedCredits && firestore && currentSpaceId && savedEntryId) {
                 processNewEntryFirestore(firestore, currentSpaceId, contentForProcessing, 'help', {
                     questionId: questionId,
+                    existingEntryId: savedEntryId, // Pass the actual Firestore entry ID
                 }).then((result) => {
                     if (result.success) {
                         refreshSummaries();

@@ -76,6 +76,9 @@ function localToFirestoreSummary(local: LocalSummary): Omit<FirestoreSummary, 's
  *
  * Note: The raw entry should already be saved via addEntry from SpaceDataContext.
  * This function focuses on topic extraction and summary management.
+ *
+ * @param existingEntryId - The ID of the already-saved entry (from saveEntry).
+ *                          This ensures the summary's topicSources reference the correct entry.
  */
 export async function processNewEntryFirestore(
   firestore: Firestore,
@@ -86,9 +89,11 @@ export async function processNewEntryFirestore(
     userTags?: string[];
     questionId?: string;
     conversationId?: string;
+    existingEntryId?: string; // Pass the actual entry ID from Firestore
   } = {}
 ): Promise<ProcessEntryResult> {
-  const entryId = `entry_${generateUUID()}`;
+  // Use the existing entry ID if provided, otherwise generate a new one
+  const entryId = metadata.existingEntryId || `entry_${generateUUID()}`;
 
   try {
     // Get existing domains from summaries for context

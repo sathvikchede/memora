@@ -13,7 +13,7 @@ interface SpaceIdEntryProps {
 }
 
 export function SpaceIdEntry({ onSpaceVerified }: SpaceIdEntryProps) {
-  const { firestore } = useFirebase();
+  const { firestore, user } = useFirebase();
   const { toast } = useToast();
 
   const [spaceId, setSpaceId] = useState('');
@@ -23,6 +23,13 @@ export function SpaceIdEntry({ onSpaceVerified }: SpaceIdEntryProps) {
   const handleVerify = async () => {
     setError('');
 
+    // Check if user is authenticated
+    if (!user) {
+      setError('Please sign in first');
+      console.error('User not authenticated when trying to verify space');
+      return;
+    }
+
     // Validate format (7 digits)
     if (!/^\d{7}$/.test(spaceId)) {
       setError('Space ID must be a 7-digit number');
@@ -30,6 +37,7 @@ export function SpaceIdEntry({ onSpaceVerified }: SpaceIdEntryProps) {
     }
 
     setIsLoading(true);
+    console.log('Verifying space with user:', user.uid, user.email);
     try {
       const space = await getSpace(firestore, spaceId);
 
