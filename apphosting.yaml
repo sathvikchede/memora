@@ -5,3 +5,17 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+GOOGLE_GENAI_API_KEY=AIzaSyCg4usRU1ALVhYF6T8p1u3PbogiSBGbZI4
+GOOGLE_API_KEY=AIzaSyCg4usRU1ALVhYF6T8p1u3PbogiSBGbZI4
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyA3OfbZVarqpkm8han7qLzn5Q3jr5T5AJI
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=memora-001.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=memora-001
+NEXT_PUBLIC_FIREBASE_APP_ID=1:104760912132:web:ece40e44b145639ebac851
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=104760912132
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=memora-001.firebasestorage.app
+
+# Email Configuration for OTP Verification
+# Use a Gmail account with App Password enabled
+# To create an App Password: Google Account > Security > 2-Step Verification > App passwords
+EMAIL_USER=memoranoreply@gmail.com
+EMAIL_APP_PASSWORD=cpdgnierbxdrdqlg
