@@ -88,10 +88,9 @@ export function SpaceSwitcher({ onJoinSpace, collapsed = false }: SpaceSwitcherP
           variant="ghost"
           className={`w-full justify-start gap-2 ${collapsed ? 'px-2' : 'px-3'}`}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary text-xs font-bold">
-            {currentSpace ? getShortName(currentSpace.name) : <Building2 className="h-4 w-4" />}
-          </div>
-          {!collapsed && (
+          {collapsed ? (
+            <Building2 className="h-4 w-4" />
+          ) : (
             <>
               <div className="flex flex-col items-start text-left min-w-0 flex-1">
                 <span className="text-sm font-medium truncate max-w-[140px]">
@@ -115,9 +114,6 @@ export function SpaceSwitcher({ onJoinSpace, collapsed = false }: SpaceSwitcherP
             onClick={() => handleSwitchSpace(space.id)}
             className="flex items-center gap-2 cursor-pointer"
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10 text-primary text-xs font-bold">
-              {getShortName(space.name)}
-            </div>
             <div className="flex flex-col min-w-0 flex-1">
               <span className="text-sm truncate">{space.name}</span>
               <span className="text-xs text-muted-foreground capitalize">{space.type}</span>

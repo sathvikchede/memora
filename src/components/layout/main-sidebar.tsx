@@ -21,31 +21,6 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { SpaceSwitcher, UserMenu, JoinSpaceDialog } from "@/components/space";
 
-const MIcon = () => (
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-14 w-14 shrink-0"
-    >
-      <path
-        d="M8 15V9H6V15H8Z"
-        fill="currentColor"
-      />
-      <path
-        d="M8 11C8 10.4477 8.44772 10 9 10C9.55228 10 10 10.4477 10 11V15H8V11Z"
-        fill="currentColor"
-      />
-      <path
-        d="M10 11C10 10.4477 10.4477 10 11 10C11.5523 10 12 10.4477 12 11V15H10V11Z"
-        fill="currentColor"
-      />
-      <circle cx="13.5" cy="15" r="1" fill="currentColor" />
-    </svg>
-  );
-
 const menuItems = [
   { href: "/ask", icon: HelpCircle, label: "Ask.", tooltip: "Ask" },
   { href: "/add", icon: Plus, label: "Add.", tooltip: "Add" },
@@ -70,12 +45,21 @@ export function MainSidebar({ activeTab }: MainSidebarProps) {
   return (
     <>
       <SidebarHeader className="p-2">
+        {/* Memora Logo */}
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'px-2'} py-2`}>
+          {isCollapsed ? (
+            <span className="text-xl font-black text-white">m.</span>
+          ) : (
+            <span className="text-2xl font-black text-white">memora.</span>
+          )}
+        </div>
+        {/* Space Switcher */}
         <SpaceSwitcher
           collapsed={isCollapsed}
           onJoinSpace={() => setJoinDialogOpen(true)}
         />
       </SidebarHeader>
-      <SidebarContent className="p-2 pt-4">
+      <SidebarContent className="p-2 pt-6">
         <SidebarMenu>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>

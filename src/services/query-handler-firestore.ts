@@ -30,6 +30,7 @@ export interface HandleQueryResult {
     content: string;
     source_type: string;
     timestamp: string;
+    contributor: string;
   }>;
   confidence: number;
   insufficient_info: boolean;
@@ -161,6 +162,7 @@ export async function handleQueryFirestore(
         content: entry.content,
         source_type: entry.sourceType,
         timestamp: entry.createdAt?.toDate?.()?.toISOString() || timestamp,
+        contributor: entry.contributor || 'Anonymous',
       };
     }
     return {
@@ -168,6 +170,7 @@ export async function handleQueryFirestore(
       content: 'Entry not found',
       source_type: 'unknown',
       timestamp,
+      contributor: 'Unknown',
     };
   });
 

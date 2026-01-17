@@ -13,26 +13,45 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlusCircle, Trash2 } from 'lucide-react';
-import { useInformation, Club, WorkExperience } from '@/context/information-context';
+import { useSpace } from '@/context/space-context';
+import { useFirebase } from '@/firebase';
+import { updateSpaceMembership, SpaceMemberProfile } from '@/services/auth';
 import { useToast } from '@/hooks/use-toast';
 
+interface Club {
+  id: string;
+  name: string;
+  position: string;
+}
+
+interface WorkExperience {
+  id: string;
+  organization: string;
+  employmentType: 'intern' | 'full-time';
+  position: string;
+  startDate: string;
+  endDate: string;
+}
+
 export function SpaceClient() {
-  const { currentUser, updateUser } = useInformation();
+  const { currentSpaceId, currentSpace, currentMembership, refreshSpaceData } = useSpace();
+  const { user, firestore } = useFirebase();
   const { toast } = useToast();
 
   const [year, setYear] = useState('');
-  const [department, setDepartment] = useState('');
+  const [branch, setBranch] = useState('');
   const [clubs, setClubs] = useState<Club[]>([]);
   const [workExperience, setWorkExperience] = useState<WorkExperience[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (currentUser) {
-      setYear(currentUser.year || '');
-      setDepartment(currentUser.department || '');
-      setClubs(currentUser.clubs || []);
-      setWorkExperience(currentUser.workExperience || []);
+    if (currentMembership) {
+      setYear(currentMembership.profile.year || '');
+      setBranch(currentMembership.profile.branch || '');
+      setClubs(currentMembership.profile.clubs || []);
+      setWorkExperience(currentMembership.profile.workExperience || []);
     }
-  }, [currentUser]);
+  }, [currentMembership]);
 
   const addClub = () => {
     setClubs([...clubs, { id: `club-${Date.now()}`, name: '', position: '' }]);
@@ -45,7 +64,7 @@ export function SpaceClient() {
   const handleClubChange = (id: string, field: 'name' | 'position', value: string) => {
     setClubs(clubs.map(club => club.id === id ? { ...club, [field]: value } : club));
   };
-  
+
   const addWorkExperience = () => {
     setWorkExperience([...workExperience, { id: `work-${Date.now()}`, organization: '', employmentType: 'intern', position: '', startDate: '', endDate: '' }]);
   };
@@ -58,35 +77,82 @@ export function SpaceClient() {
     setWorkExperience(workExperience.map(exp => exp.id === id ? { ...exp, [field]: value } : exp));
   };
 
-  const handleSaveChanges = () => {
-    const updatedUser = {
-      ...currentUser,
-      year,
-      department,
-      clubs,
-      workExperience
-    };
-    updateUser(updatedUser);
-    toast({
+  const handleSaveChanges = async () => {
+    if (!user || !currentSpaceId || !currentMembership) return;
+
+    setIsSaving(true);
+    try {
+      // Filter out empty clubs and work experiences
+      const validClubs = clubs.filter(c => c.name.trim() !== '');
+      const validWorkExperience = workExperience.filter(w => w.organization.trim() !== '');
+
+      const updatedProfile: SpaceMemberProfile = {
+        year,
+        branch,
+        clubs: validClubs,
+        workExperience: validWorkExperience,
+        creditBalance: currentMembership.profile.creditBalance,
+      };
+
+      await updateSpaceMembership(firestore, currentSpaceId, user.uid, updatedProfile);
+      await refreshSpaceData();
+
+      toast({
         title: "Success",
         description: "Your space details have been updated."
-    })
-  }
+      });
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  if (!currentUser) {
-    return <div>Loading...</div>;
+  if (!currentMembership || !currentSpace) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-8">
+    <div className="container mx-auto max-w-4xl py-8 px-4">
       <div className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="year">Year</Label>
-          <Input id="year" placeholder="e.g., 2nd Year" value={year} onChange={e => setYear(e.target.value)} />
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {currentSpace.settings.yearOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="department">Department</Label>
-          <Input id="department" placeholder="e.g., Computer Science" value={department} onChange={e => setDepartment(e.target.value)} />
+          <Label htmlFor="branch">Branch/Department</Label>
+          <Select value={branch} onValueChange={setBranch}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select branch" />
+            </SelectTrigger>
+            <SelectContent>
+              {currentSpace.settings.branchOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-4">
@@ -128,7 +194,9 @@ export function SpaceClient() {
             <Button variant="outline" size="sm" onClick={addWorkExperience}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
         </div>
 
-        <Button className="w-full" onClick={handleSaveChanges}>Save Changes</Button>
+        <Button className="w-full" onClick={handleSaveChanges} disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </div>
     </div>
   );

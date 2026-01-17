@@ -3,13 +3,17 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { UserMenu } from "@/components/space/user-menu";
+import { useSpace } from "@/context/space-context";
+import { Coins } from "lucide-react";
 
 interface HeaderProps {
   activeTab: string;
 }
 
 export function Header({ activeTab }: HeaderProps) {
+  const { currentMembership } = useSpace();
+  const creditBalance = currentMembership?.profile?.creditBalance ?? 0;
+
   return (
     <>
       <header className="relative flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
@@ -25,7 +29,10 @@ export function Header({ activeTab }: HeaderProps) {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
-          <UserMenu />
+          <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
+            <Coins className="h-4 w-4" />
+            <span>{creditBalance} credits</span>
+          </div>
         </div>
       </header>
       <Separator />

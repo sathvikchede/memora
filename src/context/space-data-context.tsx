@@ -341,41 +341,53 @@ export function SpaceDataProvider({ children }: SpaceDataProviderProps) {
   ): Promise<void> => {
     if (!currentSpaceId) return;
 
-    // Find existing chat
-    const existingChat = chatHistory.find((c) => c.id === chatId);
-    if (!existingChat) return;
+    // Use a promise to get the updated messages from the state updater function
+    // This avoids stale closure issues when addMessageToHistory is called
+    // right after addHistoryItem
+    const updatedMessagesPromise = new Promise<Message[] | null>((resolve) => {
+      setChatHistory((prev) => {
+        const existingChat = prev.find((c) => c.id === chatId);
+        if (!existingChat) {
+          resolve(null);
+          return prev;
+        }
 
-    const updatedMessages = [...existingChat.messages, message];
+        const updatedMessages = [...existingChat.messages, message];
 
-    // Update in Firestore
-    await updateChatHistory(firestore, currentSpaceId, chatId, {
-      messages: updatedMessages.map((m) => ({
-        id: m.id,
-        role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
-        content: m.text,
-        timestamp: new Date().toISOString(),
-      })),
+        const newState = prev.map((item) => {
+          if (item.id === chatId) {
+            const newTitle = item.messages.length === 1 && item.messages[0].sender === 'user'
+              ? item.messages[0].text
+              : item.title;
+            return {
+              ...item,
+              messages: updatedMessages,
+              title: newTitle,
+              sources: sources || item.sources,
+            };
+          }
+          return item;
+        });
+
+        resolve(updatedMessages);
+        return newState;
+      });
     });
 
-    // Update local state
-    setChatHistory((prev) =>
-      prev.map((item) => {
-        if (item.id === chatId) {
-          // Update title if this is the second message (first was user's question)
-          const newTitle = item.messages.length === 1 && item.messages[0].sender === 'user'
-            ? item.messages[0].text
-            : item.title;
-          return {
-            ...item,
-            messages: updatedMessages,
-            title: newTitle,
-            sources: sources || item.sources,
-          };
-        }
-        return item;
-      })
-    );
-  }, [currentSpaceId, chatHistory, firestore]);
+    const updatedMessages = await updatedMessagesPromise;
+
+    // Update in Firestore after getting the latest state
+    if (updatedMessages) {
+      await updateChatHistory(firestore, currentSpaceId, chatId, {
+        messages: updatedMessages.map((m) => ({
+          id: m.id,
+          role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
+          content: m.text,
+          timestamp: new Date().toISOString(),
+        })),
+      });
+    }
+  }, [currentSpaceId, firestore]);
 
   const getChatHistoryItemByIdHandler = useCallback((chatId: string): ChatHistoryItem | undefined => {
     return chatHistory.find((item) => item.id === chatId);

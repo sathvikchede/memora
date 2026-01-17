@@ -61,45 +61,59 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
   const isMobile = useIsMobile();
   const formId = useId();
   const [isThinking, setIsThinking] = useState(false);
+  const isSubmittingRef = useRef(false); // Synchronous guard against double submission
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
 
+  // Only load messages from history on initial mount or when chatId changes
+  // Use a ref to track if we've loaded the initial messages for this chatId
+  const loadedChatIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (chatId) {
-      const historyItem = getChatHistoryItemById(chatId);
-      if (historyItem) {
-        setMessages(historyItem.messages);
+      // Only load from history if this is a different chat than we've already loaded
+      if (loadedChatIdRef.current !== chatId) {
+        const historyItem = getChatHistoryItemById(chatId);
+        if (historyItem) {
+          setMessages(historyItem.messages);
+        }
+        loadedChatIdRef.current = chatId;
       }
     } else {
       setMessages(initialMessages);
+      loadedChatIdRef.current = null;
     }
   }, [chatId, getChatHistoryItemById]);
 
 
   const handleSend = async () => {
+    // Use ref for synchronous check to prevent double submission
+    // (state updates are async and may not be processed before second call)
+    if (isSubmittingRef.current || isThinking) return;
     if (input.trim() || uploadedFiles.length > 0) {
-        setMessages(prev => prev.map(m => ({ ...m, showActions: false })));
+        isSubmittingRef.current = true; // Set synchronously before any async work
         const userMessageText = input.trim();
+        setInput(""); // Clear input immediately
+        setIsThinking(true); // Set thinking state for UI
+
+        setMessages(prev => prev.map(m => ({ ...m, showActions: false })));
         const userMessage: Message = { id: `user-${Date.now()}`, text: userMessageText, sender: 'user' };
 
         let currentChatId = chatId;
+        let shouldNotifyNewChat = false;
         // If it's a new chat, create a history item first
         if (!currentChatId) {
             const newHistoryItem = await addHistoryItem(userMessageText, [userMessage]);
             currentChatId = newHistoryItem.id;
-            if (onNewChat) {
-                onNewChat(currentChatId);
-            }
+            shouldNotifyNewChat = true;
         } else {
              await addMessageToHistory(currentChatId, userMessage);
         }
 
         setMessages(prev => [...prev, userMessage]);
-        setInput("");
-        setIsThinking(true);
 
         let aiResponseText = '';
         let sourcesForAnswer: any[] = [];
@@ -156,7 +170,7 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
                         aiResponseText = queryResult.answer;
                         // Convert to the format expected by the sources view
                         sourcesForAnswer = queryResult.original_entry_details.map(entry => ({
-                            contributor: 'Memora Knowledge Base',
+                            contributor: entry.contributor,
                             rawInformation: entry.content,
                             date: entry.timestamp.split('T')[0],
                             type: entry.source_type,
@@ -213,6 +227,12 @@ export function ChatInterface({ chatId, onNewChat, onShowSources, onPost }: Chat
         }
         setMessages(prev => [...prev, aiResponse]);
         setIsThinking(false);
+        isSubmittingRef.current = false; // Reset the synchronous guard
+
+        // Navigate to chat-detail AFTER the response is received to avoid component unmounting
+        if (shouldNotifyNewChat && onNewChat && currentChatId) {
+            onNewChat(currentChatId);
+        }
     }
   };
 

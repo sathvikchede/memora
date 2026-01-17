@@ -64,10 +64,7 @@ export function LandingPage({ onSignInComplete }: LandingPageProps) {
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-lg">
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <span className="text-3xl font-bold text-primary">M</span>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Memora</h1>
+          <h1 className="text-4xl font-black text-white">memora.</h1>
           <p className="mt-2 text-center text-sm text-muted-foreground">
             From Memory to Meaning
           </p>

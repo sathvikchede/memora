@@ -103,7 +103,7 @@ INSTRUCTIONS:
 1. Answer the query using ONLY the provided knowledge
 2. Track which specific summaries and topics you reference
 3. If information is insufficient to answer the query, set insufficient_info to true and return an empty answer
-4. Be concise, helpful, and format your answer well using markdown
+4. **FORMAT YOUR ANSWER USING MARKDOWN:** Use headings (##, ###), subheadings, bullet points (using - or *), numbered lists, and **bold text** to structure the information logically and make it easy to read. Always prefer structured formatting over plain paragraphs when the content allows for it.
 5. Do not make up information - only use what's in the summaries
 6. If you can partially answer the question, do so and note what information is missing
 
